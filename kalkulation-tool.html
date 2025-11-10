@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Möbel-Kalkulations-Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+        }
+
+        header {
+            margin-bottom: 30px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="date"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .summary-box {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 8px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-label {
+            font-size: 11px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .summary-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .section-full {
+            grid-column: 1 / -1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tr:hover {
+            background: #f0f0f0;
+        }
+
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+            padding: 8px 12px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .delete-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background: #ff5252;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #666;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .print-btn {
+            background: #10b981;
+        }
+
+        .print-btn:hover {
+            background: #059669;
+        }
+
+        .export-btn {
+            background: #f59e0b;
+        }
+
+        .export-btn:hover {
+            background: #d97706;
+        }
+
+        .material-box {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .material-box-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        input[type="text"] {
+            font-size: 12px;
+            padding: 6px 8px;
+        }
+
+        input[type="number"] {
+            font-size: 12px;
+            padding: 6px 8px;
+        }
+
+        select {
+            font-size: 12px;
+            padding: 6px 8px;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                max-width: 100%;
+            }
+            .actions, .tab-buttons, .btn-secondary, .delete-btn {
+                display: none !important;
+            }
+            .section {
+                break-inside: avoid;
+            }
+            table {
+                font-size: 10px;
+            }
+            th, td {
+                padding: 4px;
+            }
+        }
+
+        /* Spezielle Print-Klassen */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+        }
+
+        .print-only {
+            display: none;
+        }
+
+        .print-header {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #333;
+        }
+
+        .print-header h2 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .print-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .print-info-item {
+            display: flex;
+            gap: 5px;
+        }
+
+        .print-info-label {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="no-print">
+            <h1>Möbel-Kalkulations-Tool</h1>
+            <p class="subtitle">Interne Preisberechnung für Möbelprojekte</p>
+        </header>
+
+        <div class="tab-buttons no-print">
+            <button class="tab-btn active" onclick="switchTab('kalkulation')">Kalkulation</button>
+            <button class="tab-btn" onclick="switchTab('holzliste')">Holzliste</button>
+            <button class="tab-btn" onclick="switchTab('beschlaege')">Beschläge</button>
+        </div>
+
+        <!-- Print Header (nur beim Drucken sichtbar) -->
+        <div class="print-only print-header">
+            <h2 id="print-title">Möbel-Kalkulation</h2>
+            <div class="print-info">
+                <div class="print-info-item">
+                    <span class="print-info-label">Kunde:</span>
+                    <span id="print-customer"></span>
+                </div>
+                <div class="print-info-item">
+                    <span class="print-info-label">Gegenstand:</span>
+                    <span id="print-object"></span>
+                </div>
+                <div class="print-info-item">
+                    <span class="print-info-label">Bearbeitet von:</span>
+                    <span id="print-processed"></span>
+                </div>
+                <div class="print-info-item">
+                    <span class="print-info-label">Datum:</span>
+                    <span id="print-date"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KALKULATION TAB -->
+        <div id="kalkulation" class="tab-content active">
+            <div class="main-grid">
+                <div class="section">
+                    <div class="section-title">Allgemeine Angaben</div>
+                    <div class="form-group">
+                        <label>Kunde</label>
+                        <input type="text" id="customer" placeholder="z.B. Rudolphi">
+                    </div>
+                    <div class="form-group">
+                        <label>Gegenstand</label>
+                        <input type="text" id="object" placeholder="z.B. Badschrank">
+                    </div>
+                    <div class="form-group">
+                        <label>Bearbeitet von</label>
+                        <input type="text" id="processed_by">
+                    </div>
+                    <div class="form-group">
+                        <label>Datum</label>
+                        <input type="date" id="date">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Variablen</div>
+                    <div class="form-group">
+                        <label>Stundensatz Geselle (€/h)</label>
+                        <input type="number" id="wage1" value="68" step="0.50">
+                    </div>
+                    <div class="form-group">
+                        <label>Stundensatz 2 (€/h)</label>
+                        <input type="number" id="wage2" value="58" step="0.50">
+                    </div>
+                    <div class="form-group">
+                        <label>Stundensatz 3 (€/h)</label>
+                        <input type="number" id="wage3" step="0.50">
+                    </div>
+                    <div class="form-group">
+                        <label>KFZ-Kosten (€/km)</label>
+                        <input type="number" id="vehicle_cost" value="0.4" step="0.01">
+                    </div>
+                </div>
+            </div>
+
+            <div class="main-grid">
+                <div class="section">
+                    <div class="section-title">Materialien</div>
+                    <div id="materials-container"></div>
+                    <button class="btn-secondary" onclick="addMaterial()">+ Material hinzufügen</button>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Kanten (Art, Stärke, Preis/m)</div>
+                    <div id="edges-container"></div>
+                    <button class="btn-secondary" onclick="addEdge()">+ Kante hinzufügen</button>
+                </div>
+            </div>
+
+            <div class="main-grid">
+                <div class="section">
+                    <div class="section-title">Fremdleistungen</div>
+                    <table id="subcontract-table">
+                        <thead>
+                            <tr>
+                                <th>Beschreibung</th>
+                                <th>Anzahl</th>
+                                <th>Einheit</th>
+                                <th>€/Einheit</th>
+                                <th>Betrag (€)</th>
+                                <th class="no-print"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="subcontract-tbody"></tbody>
+                    </table>
+                    <button class="btn-secondary" onclick="addSubcontract()">+ Fremdleistung hinzufügen</button>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Lacke & Beizen</div>
+                    <table id="coatings-table">
+                        <thead>
+                            <tr>
+                                <th>Beschreibung</th>
+                                <th>Menge (L)</th>
+                                <th>€/Liter</th>
+                                <th>Betrag (€)</th>
+                                <th class="no-print"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="coatings-tbody"></tbody>
+                    </table>
+                    <button class="btn-secondary" onclick="addCoating()">+ Lack/Beize hinzufügen</button>
+                </div>
+            </div>
+
+            <div class="main-grid">
+                <div class="section section-full">
+                    <div class="section-title">Arbeitszeiten</div>
+                    <table id="work-hours-table">
+                        <thead>
+                            <tr>
+                                <th>Position</th>
+                                <th>Anzahl (h)</th>
+                                <th>Lohnart</th>
+                                <th>Betrag (€)</th>
+                                <th class="no-print"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="work-hours-tbody"></tbody>
+                    </table>
+                    <button class="btn-secondary" onclick="addWorkHour()">+ Arbeitszeit hinzufügen</button>
+                </div>
+            </div>
+
+            <div class="main-grid">
+                <div class="section section-full">
+                    <div class="section-title">KFZ-Fahrten</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Entfernung (km)</th>
+                                <th>Anzahl Wege</th>
+                                <th>Summe (€)</th>
+                                <th class="no-print"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="vehicle-tbody"></tbody>
+                    </table>
+                    <button class="btn-secondary" onclick="addVehicleTrip()">+ Fahrt hinzufügen</button>
+                </div>
+            </div>
+
+            <!-- SUMMARY -->
+            <div class="summary-box">
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="summary-label">Material</div>
+                        <div class="summary-value"><span id="summary-material">0,00</span> €</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">Kanten</div>
+                        <div class="summary-value"><span id="summary-edges">0,00</span> €</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">Arbeitszeit</div>
+                        <div class="summary-value"><span id="summary-labor">0,00</span> €</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">Beschläge</div>
+                        <div class="summary-value"><span id="summary-hardware">0,00</span> €</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">Lacke</div>
+                        <div class="summary-value"><span id="summary-coatings">0,00</span> €</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">Fremd</div>
+                        <div class="summary-value"><span id="summary-subcontracts">0,00</span> €</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">KFZ</div>
+                        <div class="summary-value"><span id="summary-vehicle">0,00</span> €</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">Selbstkosten</div>
+                        <div class="summary-value"><span id="summary-costs">0,00</span> €</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">Marge</div>
+                        <div class="summary-value"><span id="summary-margin">0,00</span> €</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">Netto</div>
+                        <div class="summary-value"><span id="summary-total">0,00</span> €</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">MwSt</div>
+                        <div class="summary-value"><span id="summary-tax">0,00</span> €</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-label">BRUTTO</div>
+                        <div class="summary-value"><span id="summary-gross">0,00</span> €</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section section-full" style="margin-top: 20px;">
+                <div class="section-title">Gewinnmarge</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label>Gewinnzuschlag auf Selbstkosten (%)</label>
+                        <input type="number" id="margin" value="10" step="1" onchange="calculateAll()">
+                    </div>
+                    <div class="form-group">
+                        <label>Rabatt auf Gesamtpreis (%)</label>
+                        <input type="number" id="discount" value="0" step="0.5" onchange="calculateAll()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn-primary" onclick="calculateAll()">🔄 Berechnen</button>
+                <button class="print-btn" onclick="window.print()">🖨️ Alles Drucken</button>
+                <button class="export-btn" onclick="exportCSV()">📊 Komplett-CSV</button>
+                <button class="btn-secondary" onclick="resetForm()">🔄 Zurücksetzen</button>
+            </div>
+        </div>
+
+        <!-- HOLZLISTE TAB -->
+        <div id="holzliste" class="tab-content">
+            <div class="section section-full">
+                <div class="section-title">Holzteile</div>
+                <table id="wood-table">
+                    <thead>
+                        <tr>
+                            <th>Pos.</th>
+                            <th>Bezeichnung</th>
+                            <th>Material</th>
+                            <th>Stk.</th>
+                            <th>Länge (mm)</th>
+                            <th>Breite (mm)</th>
+                            <th>L1 (oben/vorne)</th>
+                            <th>L2 (unten/hinten)</th>
+                            <th>B1 (links)</th>
+                            <th>B2 (rechts)</th>
+                            <th>Bemerkung</th>
+                            <th class="no-print"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="wood-tbody"></tbody>
+                </table>
+                <button class="btn-secondary" onclick="addWoodPart()">+ Holzteil hinzufügen</button>
+            </div>
+
+            <div class="section section-full">
+                <div class="section-title">Kantenberechnung Übersicht (nach Kantenbezeichnung)</div>
+                <table id="edge-summary-table">
+                    <thead>
+                        <tr>
+                            <th>Kantenbezeichnung</th>
+                            <th>Kantenart</th>
+                            <th>Stärke</th>
+                            <th>Gesamtlänge (m)</th>
+                            <th>€/m</th>
+                            <th>Betrag (€)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="edge-summary-tbody"></tbody>
+                </table>
+            </div>
+
+            <div class="actions">
+                <button class="print-btn" onclick="printWoodList()">🖨️ Holzliste Drucken</button>
+                <button class="export-btn" onclick="exportWoodListCSV()">📊 Holzliste CSV</button>
+            </div>
+        </div>
+
+        <!-- BESCHLÄGE TAB -->
+        <div id="beschlaege" class="tab-content">
+            <div class="section section-full">
+                <div class="section-title">Beschläge & Hardware</div>
+                <table id="hardware-table">
+                    <thead>
+                        <tr>
+                            <th>Beschreibung</th>
+                            <th>Anzahl</th>
+                            <th>Einheit</th>
+                            <th>€/Einheit</th>
+                            <th>Summe (€)</th>
+                            <th class="no-print"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="hardware-tbody"></tbody>
+                </table>
+                <button class="btn-secondary" onclick="addHardware()">+ Beschlag hinzufügen</button>
+            </div>
+
+            <div class="actions">
+                <button class="print-btn" onclick="printHardwareList()">🖨️ Beschlagsliste Drucken</button>
+                <button class="export-btn" onclick="exportHardwareListCSV()">📊 Beschlagsliste CSV</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('date').valueAsDate = new Date();
+
+        const state = {
+            materials: [],
+            edges: [],
+            workHours: [],
+            vehicles: [],
+            subcontracts: [],
+            coatings: [],
+            woodParts: [],
+            hardware: []
+        };
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            if (tabName === 'holzliste') {
+                calculateEdgeSummary();
+            }
+        }
+
+        // ===== PRINT FUNCTIONS =====
+        function updatePrintHeader() {
+            document.getElementById('print-customer').textContent = document.getElementById('customer').value || '-';
+            document.getElementById('print-object').textContent = document.getElementById('object').value || '-';
+            document.getElementById('print-processed').textContent = document.getElementById('processed_by').value || '-';
+            document.getElementById('print-date').textContent = document.getElementById('date').value || '-';
+        }
+
+        function printWoodList() {
+            updatePrintHeader();
+            document.getElementById('print-title').textContent = 'Holzliste';
+
+            // Alle Tabs ausblenden
+            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+            // Nur Holzliste anzeigen
+            document.getElementById('holzliste').style.display = 'block';
+
+            window.print();
+
+            // Zurücksetzen nach Druck
+            setTimeout(() => {
+                document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = '');
+                document.getElementById('holzliste').style.display = 'block';
+                switchTab('holzliste');
+            }, 100);
+        }
+
+        function printHardwareList() {
+            updatePrintHeader();
+            document.getElementById('print-title').textContent = 'Beschlagsliste';
+
+            // Alle Tabs ausblenden
+            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+            // Nur Beschläge anzeigen
+            document.getElementById('beschlaege').style.display = 'block';
+
+            window.print();
+
+            // Zurücksetzen nach Druck
+            setTimeout(() => {
+                document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = '');
+                document.getElementById('beschlaege').style.display = 'block';
+                switchTab('beschlaege');
+            }, 100);
+        }
+
+        // ===== EXPORT CSV FUNCTIONS =====
+        function exportWoodListCSV() {
+            let csv = 'Holzliste\n';
+            csv += `Kunde;${document.getElementById('customer').value}\n`;
+            csv += `Gegenstand;${document.getElementById('object').value}\n`;
+            csv += `Datum;${document.getElementById('date').value}\n\n`;
+
+            csv += 'Pos.;Bezeichnung;Material;Stk.;Länge (mm);Breite (mm);L1;L2;B1;B2;Bemerkung\n';
+
+            state.woodParts.forEach((part, idx) => {
+                const materialName = part.material >= 0 && part.material < state.materials.length
+                    ? state.materials[part.material].name
+                    : '';
+
+                const l1Name = part.L1 >= 0 && part.L1 < state.edges.length ? state.edges[part.L1].name : 'Keine';
+                const l2Name = part.L2 >= 0 && part.L2 < state.edges.length ? state.edges[part.L2].name : 'Keine';
+                const b1Name = part.B1 >= 0 && part.B1 < state.edges.length ? state.edges[part.B1].name : 'Keine';
+                const b2Name = part.B2 >= 0 && part.B2 < state.edges.length ? state.edges[part.B2].name : 'Keine';
+
+                csv += `${idx + 1};${part.name};${materialName};${part.qty};${part.length};${part.width};${l1Name};${l2Name};${b1Name};${b2Name};${part.remark}\n`;
+            });
+
+            csv += '\nKantenberechnung\n';
+            csv += 'Bezeichnung;Kantenart;Stärke;Gesamtlänge (m);€/m;Betrag (€)\n';
+
+            const edgeTable = document.getElementById('edge-summary-tbody');
+            edgeTable.querySelectorAll('tr').forEach(row => {
+                const cols = row.querySelectorAll('td');
+                if (cols.length > 0) {
+                    csv += cols[0].textContent + ';' + cols[1].textContent + ';' + cols[2].textContent + ';' +
+                           cols[3].textContent + ';' + cols[4].textContent + ';' + cols[5].textContent + '\n';
+                }
+            });
+
+            downloadCSV(csv, `Holzliste_${document.getElementById('customer').value}_${new Date().toISOString().split('T')[0]}.csv`);
+        }
+
+        function exportHardwareListCSV() {
+            let csv = 'Beschlagsliste\n';
+            csv += `Kunde;${document.getElementById('customer').value}\n`;
+            csv += `Gegenstand;${document.getElementById('object').value}\n`;
+            csv += `Datum;${document.getElementById('date').value}\n\n`;
+
+            csv += 'Beschreibung;Anzahl;Einheit;€/Einheit;Summe (€)\n';
+
+            state.hardware.forEach(h => {
+                const sum = (h.quantity || 0) * (h.pricePerUnit || 0);
+                csv += `${h.description};${h.quantity};${h.unit};${h.pricePerUnit.toFixed(2)};${sum.toFixed(2)}\n`;
+            });
+
+            csv += '\n';
+            const totalHardware = state.hardware.reduce((sum, h) => sum + ((h.quantity || 0) * (h.pricePerUnit || 0)), 0);
+            csv += `Gesamt;;;;;${totalHardware.toFixed(2)}\n`;
+
+            downloadCSV(csv, `Beschlagsliste_${document.getElementById('customer').value}_${new Date().toISOString().split('T')[0]}.csv`);
+        }
+
+        function exportCSV() {
+            let csv = 'Komplette Kalkulation\n';
+            csv += `Kunde;${document.getElementById('customer').value}\n`;
+            csv += `Gegenstand;${document.getElementById('object').value}\n`;
+            csv += `Bearbeitet von;${document.getElementById('processed_by').value}\n`;
+            csv += `Datum;${document.getElementById('date').value}\n\n`;
+
+            // Holzliste
+            csv += 'HOLZLISTE\n';
+            csv += 'Pos.;Bezeichnung;Material;Stk.;Länge;Breite;L1;L2;B1;B2;Bemerkung\n';
+            state.woodParts.forEach((part, idx) => {
+                const materialName = part.material >= 0 && part.material < state.materials.length
+                    ? state.materials[part.material].name
+                    : '';
+                const l1Name = part.L1 >= 0 && part.L1 < state.edges.length ? state.edges[part.L1].name : 'Keine';
+                const l2Name = part.L2 >= 0 && part.L2 < state.edges.length ? state.edges[part.L2].name : 'Keine';
+                const b1Name = part.B1 >= 0 && part.B1 < state.edges.length ? state.edges[part.B1].name : 'Keine';
+                const b2Name = part.B2 >= 0 && part.B2 < state.edges.length ? state.edges[part.B2].name : 'Keine';
+                csv += `${idx + 1};${part.name};${materialName};${part.qty};${part.length};${part.width};${l1Name};${l2Name};${b1Name};${b2Name};${part.remark}\n`;
+            });
+
+            csv += '\nBESCHLAGSLISTE\n';
+            csv += 'Beschreibung;Anzahl;Einheit;€/Einheit;Summe\n';
+            state.hardware.forEach(h => {
+                const sum = (h.quantity || 0) * (h.pricePerUnit || 0);
+                csv += `${h.description};${h.quantity};${h.unit};${h.pricePerUnit.toFixed(2)};${sum.toFixed(2)}\n`;
+            });
+
+            csv += '\nKALKULATION\n';
+            csv += 'Position;Betrag\n';
+            csv += `Material;${document.getElementById('summary-material').textContent}\n`;
+            csv += `Kanten;${document.getElementById('summary-edges').textContent}\n`;
+            csv += `Arbeitszeit;${document.getElementById('summary-labor').textContent}\n`;
+            csv += `Beschläge;${document.getElementById('summary-hardware').textContent}\n`;
+            csv += `Lacke & Beizen;${document.getElementById('summary-coatings').textContent}\n`;
+            csv += `Fremdleistungen;${document.getElementById('summary-subcontracts').textContent}\n`;
+            csv += `KFZ-Kosten;${document.getElementById('summary-vehicle').textContent}\n`;
+            csv += `Selbstkosten;${document.getElementById('summary-costs').textContent}\n`;
+            csv += `Marge;${document.getElementById('summary-margin').textContent}\n`;
+            csv += `Netto;${document.getElementById('summary-total').textContent}\n`;
+            csv += `MwSt (19%);${document.getElementById('summary-tax').textContent}\n`;
+            csv += `BRUTTO;${document.getElementById('summary-gross').textContent}\n`;
+
+            downloadCSV(csv, `Kalkulation_Komplett_${document.getElementById('customer').value}_${new Date().toISOString().split('T')[0]}.csv`);
+        }
+
+        function downloadCSV(content, filename) {
+            const BOM = '\uFEFF'; // UTF-8 BOM für Excel
+            const blob = new Blob([BOM + content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.setAttribute('href', URL.createObjectURL(blob));
+            link.setAttribute('download', filename);
+            link.click();
+        }
+
+        // ===== MATERIAL FUNCTIONS =====
+        function addMaterial() {
+            const id = Date.now();
+            state.materials.push({ id, name: '', thickness: 0, markup: 0, price: 0 });
+            renderMaterials();
+        }
+
+        function removeMaterial(id) {
+            state.materials = state.materials.filter(m => m.id !== id);
+            renderMaterials();
+            calculateAll();
+        }
+
+        function renderMaterials() {
+            const container = document.getElementById('materials-container');
+            container.innerHTML = state.materials.map((m, idx) => `
+                <div class="material-box">
+                    <div class="material-box-title">Material ${idx + 1}</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div>
+                            <label style="font-size: 12px;">Materialbezeichnung</label>
+                            <input type="text" placeholder="z.B. Hochglanz" value="${m.name}" onchange="state.materials.find(x => x.id === ${m.id}).name = this.value; calculateAll()">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px;">Stärke (mm)</label>
+                            <input type="number" placeholder="19" value="${m.thickness}" onchange="state.materials.find(x => x.id === ${m.id}).thickness = parseFloat(this.value); calculateAll()">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 50px; gap: 10px;">
+                        <div>
+                            <label style="font-size: 12px;">Verschnitt (%)</label>
+                            <input type="number" placeholder="20" value="${m.markup}" onchange="state.materials.find(x => x.id === ${m.id}).markup = parseFloat(this.value); calculateAll()">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px;">€/m²</label>
+                            <input type="number" placeholder="25" value="${m.price}" step="0.01" onchange="state.materials.find(x => x.id === ${m.id}).price = parseFloat(this.value); calculateAll()">
+                        </div>
+                        <button class="delete-btn" onclick="removeMaterial(${m.id})" style="height: 38px; margin-top: 20px;">✕</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ===== EDGE FUNCTIONS =====
+        function addEdge() {
+            const id = Date.now();
+            state.edges.push({ id, name: '', thickness: 0, price: 0 });
+            renderEdges();
+        }
+
+        function removeEdge(id) {
+            state.edges = state.edges.filter(e => e.id !== id);
+            renderEdges();
+            calculateAll();
+        }
+
+        function renderEdges() {
+            const container = document.getElementById('edges-container');
+            container.innerHTML = state.edges.map((e, idx) => `
+                <div class="material-box">
+                    <div class="material-box-title">Kante ${idx + 1}</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div>
+                            <label style="font-size: 12px;">Kantenart</label>
+                            <input type="text" placeholder="z.B. ABS" value="${e.name}" onchange="state.edges.find(x => x.id === ${e.id}).name = this.value; calculateAll()">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px;">Stärke (mm)</label>
+                            <input type="number" placeholder="2" value="${e.thickness}" onchange="state.edges.find(x => x.id === ${e.id}).thickness = parseFloat(this.value); calculateAll()">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 50px; gap: 10px;">
+                        <div>
+                            <label style="font-size: 12px;">Preis pro m (€)</label>
+                            <input type="number" placeholder="2" value="${e.price}" step="0.01" onchange="state.edges.find(x => x.id === ${e.id}).price = parseFloat(this.value); calculateAll()">
+                        </div>
+                        <button class="delete-btn" onclick="removeEdge(${e.id})" style="height: 38px; margin-top: 20px;">✕</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ===== SUBCONTRACT FUNCTIONS =====
+        function addSubcontract() {
+            const id = Date.now();
+            state.subcontracts.push({ id, description: '', quantity: 0, unit: 'Stk.', pricePerUnit: 0 });
+            renderSubcontracts();
+        }
+
+        function removeSubcontract(id) {
+            state.subcontracts = state.subcontracts.filter(s => s.id !== id);
+            renderSubcontracts();
+            calculateAll();
+        }
+
+        function renderSubcontracts() {
+            const tbody = document.getElementById('subcontract-tbody');
+            tbody.innerHTML = state.subcontracts.map(s => {
+                const sum = (s.quantity || 0) * (s.pricePerUnit || 0);
+                return `
+                    <tr>
+                        <td><input type="text" value="${s.description}" onchange="state.subcontracts.find(x => x.id === ${s.id}).description = this.value; calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${s.quantity}" step="0.1" onchange="state.subcontracts.find(x => x.id === ${s.id}).quantity = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="text" value="${s.unit}" onchange="state.subcontracts.find(x => x.id === ${s.id}).unit = this.value;" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${s.pricePerUnit}" step="0.01" onchange="state.subcontracts.find(x => x.id === ${s.id}).pricePerUnit = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td>${sum.toFixed(2)}</td>
+                        <td class="no-print"><button class="delete-btn" onclick="removeSubcontract(${s.id})">✕</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ===== COATING FUNCTIONS =====
+        function addCoating() {
+            const id = Date.now();
+            state.coatings.push({ id, description: '', liters: 0, pricePerLiter: 0 });
+            renderCoatings();
+        }
+
+        function removeCoating(id) {
+            state.coatings = state.coatings.filter(c => c.id !== id);
+            renderCoatings();
+            calculateAll();
+        }
+
+        function renderCoatings() {
+            const tbody = document.getElementById('coatings-tbody');
+            tbody.innerHTML = state.coatings.map(c => {
+                const sum = (c.liters || 0) * (c.pricePerLiter || 0);
+                return `
+                    <tr>
+                        <td><input type="text" value="${c.description}" onchange="state.coatings.find(x => x.id === ${c.id}).description = this.value; calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${c.liters}" step="0.1" onchange="state.coatings.find(x => x.id === ${c.id}).liters = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${c.pricePerLiter}" step="0.01" onchange="state.coatings.find(x => x.id === ${c.id}).pricePerLiter = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td>${sum.toFixed(2)}</td>
+                        <td class="no-print"><button class="delete-btn" onclick="removeCoating(${c.id})">✕</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ===== WORK HOUR FUNCTIONS =====
+        function addWorkHour() {
+            const id = Date.now();
+            state.workHours.push({ id, position: '', hours: 0, wage: 1 });
+            renderWorkHours();
+        }
+
+        function removeWorkHour(id) {
+            state.workHours = state.workHours.filter(w => w.id !== id);
+            renderWorkHours();
+            calculateAll();
+        }
+
+        function renderWorkHours() {
+            const tbody = document.getElementById('work-hours-tbody');
+            tbody.innerHTML = state.workHours.map(w => {
+                const wages = [
+                    parseFloat(document.getElementById('wage1').value) || 0,
+                    parseFloat(document.getElementById('wage2').value) || 0,
+                    parseFloat(document.getElementById('wage3').value) || 0
+                ];
+                const amount = (w.hours || 0) * (wages[w.wage - 1] || 0);
+                return `
+                    <tr>
+                        <td><input type="text" value="${w.position}" onchange="state.workHours.find(x => x.id === ${w.id}).position = this.value; calculateAll()" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${w.hours}" step="0.5" onchange="state.workHours.find(x => x.id === ${w.id}).hours = parseFloat(this.value); calculateAll()" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><select onchange="state.workHours.find(x => x.id === ${w.id}).wage = parseInt(this.value); calculateAll()" style="width: 100%; padding: 4px; border: 1px solid #ddd;">
+                            <option value="1" ${w.wage === 1 ? 'selected' : ''}>Lohn 1</option>
+                            <option value="2" ${w.wage === 2 ? 'selected' : ''}>Lohn 2</option>
+                            <option value="3" ${w.wage === 3 ? 'selected' : ''}>Lohn 3</option>
+                        </select></td>
+                        <td>${amount.toFixed(2)}</td>
+                        <td class="no-print"><button class="delete-btn" onclick="removeWorkHour(${w.id})">✕</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ===== VEHICLE FUNCTIONS =====
+        function addVehicleTrip() {
+            const id = Date.now();
+            state.vehicles.push({ id, distance: 0, trips: 1 });
+            renderVehicles();
+        }
+
+        function removeVehicleTrip(id) {
+            state.vehicles = state.vehicles.filter(v => v.id !== id);
+            renderVehicles();
+            calculateAll();
+        }
+
+        function renderVehicles() {
+            const tbody = document.getElementById('vehicle-tbody');
+            const cost = parseFloat(document.getElementById('vehicle_cost').value) || 0.4;
+            tbody.innerHTML = state.vehicles.map(v => {
+                const sum = (v.distance || 0) * (v.trips || 1) * cost;
+                return `
+                    <tr>
+                        <td><input type="number" value="${v.distance}" step="1" onchange="state.vehicles.find(x => x.id === ${v.id}).distance = parseFloat(this.value); calculateAll()" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${v.trips}" step="1" onchange="state.vehicles.find(x => x.id === ${v.id}).trips = parseFloat(this.value); calculateAll()" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td>${sum.toFixed(2)}</td>
+                        <td class="no-print"><button class="delete-btn" onclick="removeVehicleTrip(${v.id})">✕</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ===== WOOD PART FUNCTIONS =====
+        function addWoodPart() {
+            const id = Date.now();
+            state.woodParts.push({
+                id,
+                name: '',
+                material: 0,
+                qty: 1,
+                length: 0,
+                width: 0,
+                remark: '',
+                L1: -1,
+                L2: -1,
+                B1: -1,
+                B2: -1
+            });
+            renderWoodParts();
+        }
+
+        function removeWoodPart(id) {
+            state.woodParts = state.woodParts.filter(w => w.id !== id);
+            renderWoodParts();
+            calculateAll();
+        }
+
+        function renderWoodParts() {
+            const tbody = document.getElementById('wood-tbody');
+            tbody.innerHTML = state.woodParts.map((w, idx) => {
+                const materialOptions = state.materials.length > 0
+                    ? state.materials.map((m, i) => `<option value="${i}" ${w.material === i ? 'selected' : ''}>${m.name || `Material ${i+1}`}</option>`).join('')
+                    : '<option value="0">Keine Materialien definiert</option>';
+
+                return `
+                    <tr>
+                        <td style="font-size: 12px; text-align: center; padding: 6px;">${idx + 1}</td>
+                        <td><input type="text" value="${w.name}" onchange="state.woodParts.find(x => x.id === ${w.id}).name = this.value;" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
+                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).material = parseInt(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;">${materialOptions}</select></td>
+                        <td><input type="number" value="${w.qty}" onchange="state.woodParts.find(x => x.id === ${w.id}).qty = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
+                        <td><input type="number" value="${w.length}" step="1" onchange="state.woodParts.find(x => x.id === ${w.id}).length = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
+                        <td><input type="number" value="${w.width}" step="1" onchange="state.woodParts.find(x => x.id === ${w.id}).width = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
+                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).L1 = parseInt(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"><option value="-1">Keine</option>${state.edges.map((e, i) => `<option value="${i}" ${w.L1 === i ? 'selected' : ''}>${e.name}</option>`).join('')}</select></td>
+                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).L2 = parseInt(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"><option value="-1">Keine</option>${state.edges.map((e, i) => `<option value="${i}" ${w.L2 === i ? 'selected' : ''}>${e.name}</option>`).join('')}</select></td>
+                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).B1 = parseInt(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"><option value="-1">Keine</option>${state.edges.map((e, i) => `<option value="${i}" ${w.B1 === i ? 'selected' : ''}>${e.name}</option>`).join('')}</select></td>
+                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).B2 = parseInt(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"><option value="-1">Keine</option>${state.edges.map((e, i) => `<option value="${i}" ${w.B2 === i ? 'selected' : ''}>${e.name}</option>`).join('')}</select></td>
+                        <td><input type="text" value="${w.remark}" onchange="state.woodParts.find(x => x.id === ${w.id}).remark = this.value;" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
+                        <td class="no-print"><button class="delete-btn" onclick="removeWoodPart(${w.id})">✕</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ===== HARDWARE FUNCTIONS =====
+        function addHardware() {
+            const id = Date.now();
+            state.hardware.push({ id, description: '', quantity: 0, unit: 'Stk.', pricePerUnit: 0 });
+            renderHardware();
+        }
+
+        function removeHardware(id) {
+            state.hardware = state.hardware.filter(h => h.id !== id);
+            renderHardware();
+            calculateAll();
+        }
+
+        function renderHardware() {
+            const tbody = document.getElementById('hardware-tbody');
+            tbody.innerHTML = state.hardware.map(h => {
+                const sum = (h.quantity || 0) * (h.pricePerUnit || 0);
+                return `
+                    <tr>
+                        <td><input type="text" value="${h.description}" onchange="state.hardware.find(x => x.id === ${h.id}).description = this.value; calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${h.quantity}" step="0.1" onchange="state.hardware.find(x => x.id === ${h.id}).quantity = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="text" value="${h.unit}" onchange="state.hardware.find(x => x.id === ${h.id}).unit = this.value;" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${h.pricePerUnit}" step="0.01" onchange="state.hardware.find(x => x.id === ${h.id}).pricePerUnit = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td>${sum.toFixed(2)}</td>
+                        <td class="no-print"><button class="delete-btn" onclick="removeHardware(${h.id})">✕</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ===== EDGE SUMMARY CALCULATION =====
+        function calculateEdgeSummary() {
+            const edgeSummary = {};
+            const EDGE_SURCHARGE_MM = 80;
+
+            state.woodParts.forEach(part => {
+                if (part.L1 >= 0 && part.L1 < state.edges.length) {
+                    const edge = state.edges[part.L1];
+                    const key = `L1_${part.L1}`;
+                    const meters = ((part.length + EDGE_SURCHARGE_MM) * (part.qty || 1)) / 1000;
+                    if (!edgeSummary[key]) {
+                        edgeSummary[key] = { label: 'L1 (oben/vorne)', edge, total: 0 };
+                    }
+                    edgeSummary[key].total += meters;
+                }
+
+                if (part.L2 >= 0 && part.L2 < state.edges.length) {
+                    const edge = state.edges[part.L2];
+                    const key = `L2_${part.L2}`;
+                    const meters = ((part.length + EDGE_SURCHARGE_MM) * (part.qty || 1)) / 1000;
+                    if (!edgeSummary[key]) {
+                        edgeSummary[key] = { label: 'L2 (unten/hinten)', edge, total: 0 };
+                    }
+                    edgeSummary[key].total += meters;
+                }
+
+                if (part.B1 >= 0 && part.B1 < state.edges.length) {
+                    const edge = state.edges[part.B1];
+                    const key = `B1_${part.B1}`;
+                    const meters = ((part.width + EDGE_SURCHARGE_MM) * (part.qty || 1)) / 1000;
+                    if (!edgeSummary[key]) {
+                        edgeSummary[key] = { label: 'B1 (links)', edge, total: 0 };
+                    }
+                    edgeSummary[key].total += meters;
+                }
+
+                if (part.B2 >= 0 && part.B2 < state.edges.length) {
+                    const edge = state.edges[part.B2];
+                    const key = `B2_${part.B2}`;
+                    const meters = ((part.width + EDGE_SURCHARGE_MM) * (part.qty || 1)) / 1000;
+                    if (!edgeSummary[key]) {
+                        edgeSummary[key] = { label: 'B2 (rechts)', edge, total: 0 };
+                    }
+                    edgeSummary[key].total += meters;
+                }
+            });
+
+            const tbody = document.getElementById('edge-summary-tbody');
+            tbody.innerHTML = Object.keys(edgeSummary).map(key => {
+                const item = edgeSummary[key];
+                const cost = (item.total * (item.edge.price || 0)).toFixed(2);
+                return `
+                    <tr>
+                        <td>${item.label}</td>
+                        <td>${item.edge.name}</td>
+                        <td>${item.edge.thickness} mm</td>
+                        <td>${item.total.toFixed(3)}</td>
+                        <td>${(item.edge.price || 0).toFixed(2)}</td>
+                        <td>${cost}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ===== CALCULATION FUNCTION =====
+        function calculateAll() {
+            renderWorkHours();
+            renderVehicles();
+            renderHardware();
+            renderSubcontracts();
+            renderCoatings();
+
+            let materialCost = 0;
+            state.woodParts.forEach(part => {
+                if (part.material >= 0 && part.material < state.materials.length) {
+                    const material = state.materials[part.material];
+                    const area = ((part.length * part.width) / 1000000) * (part.qty || 1);
+                    const costBeforeWaste = area * (material.price || 0);
+                    const wasteMultiplier = 1 + ((material.markup || 0) / 100);
+                    materialCost += costBeforeWaste * wasteMultiplier;
+                }
+            });
+
+            let edgeCost = 0;
+            const EDGE_SURCHARGE_MM = 80;
+            state.woodParts.forEach(part => {
+                if (part.L1 >= 0 && part.L1 < state.edges.length) {
+                    const edge = state.edges[part.L1];
+                    const meters = ((part.length + EDGE_SURCHARGE_MM) * (part.qty || 1)) / 1000;
+                    edgeCost += meters * (edge.price || 0);
+                }
+                if (part.L2 >= 0 && part.L2 < state.edges.length) {
+                    const edge = state.edges[part.L2];
+                    const meters = ((part.length + EDGE_SURCHARGE_MM) * (part.qty || 1)) / 1000;
+                    edgeCost += meters * (edge.price || 0);
+                }
+                if (part.B1 >= 0 && part.B1 < state.edges.length) {
+                    const edge = state.edges[part.B1];
+                    const meters = ((part.width + EDGE_SURCHARGE_MM) * (part.qty || 1)) / 1000;
+                    edgeCost += meters * (edge.price || 0);
+                }
+                if (part.B2 >= 0 && part.B2 < state.edges.length) {
+                    const edge = state.edges[part.B2];
+                    const meters = ((part.width + EDGE_SURCHARGE_MM) * (part.qty || 1)) / 1000;
+                    edgeCost += meters * (edge.price || 0);
+                }
+            });
+
+            const wages = [
+                parseFloat(document.getElementById('wage1').value) || 0,
+                parseFloat(document.getElementById('wage2').value) || 0,
+                parseFloat(document.getElementById('wage3').value) || 0
+            ];
+            const laborCost = state.workHours.reduce((sum, w) => sum + ((w.hours || 0) * (wages[w.wage - 1] || 0)), 0);
+            const vehicleCost = state.vehicles.reduce((sum, v) => sum + ((v.distance || 0) * (v.trips || 1) * (parseFloat(document.getElementById('vehicle_cost').value) || 0.4)), 0);
+            const hardwareCost = state.hardware.reduce((sum, h) => sum + ((h.quantity || 0) * (h.pricePerUnit || 0)), 0);
+            const subcontractCost = state.subcontracts.reduce((sum, s) => sum + ((s.quantity || 0) * (s.pricePerUnit || 0)), 0);
+            const coatingCost = state.coatings.reduce((sum, c) => sum + ((c.liters || 0) * (c.pricePerLiter || 0)), 0);
+
+            const costs = materialCost + edgeCost + laborCost + vehicleCost + hardwareCost + subcontractCost + coatingCost;
+            const margin = parseFloat(document.getElementById('margin').value) || 0;
+            const marginAmount = costs * (margin / 100);
+            const total = costs + marginAmount;
+            const discount = parseFloat(document.getElementById('discount').value) || 0;
+            const discountAmount = total * (discount / 100);
+            const netTotal = total - discountAmount;
+            const tax = netTotal * 0.19;
+            const gross = netTotal + tax;
+
+            document.getElementById('summary-material').textContent = materialCost.toFixed(2);
+            document.getElementById('summary-edges').textContent = edgeCost.toFixed(2);
+            document.getElementById('summary-labor').textContent = laborCost.toFixed(2);
+            document.getElementById('summary-hardware').textContent = hardwareCost.toFixed(2);
+            document.getElementById('summary-coatings').textContent = coatingCost.toFixed(2);
+            document.getElementById('summary-subcontracts').textContent = subcontractCost.toFixed(2);
+            document.getElementById('summary-vehicle').textContent = vehicleCost.toFixed(2);
+            document.getElementById('summary-costs').textContent = costs.toFixed(2);
+            document.getElementById('summary-margin').textContent = marginAmount.toFixed(2);
+            document.getElementById('summary-total').textContent = netTotal.toFixed(2);
+            document.getElementById('summary-tax').textContent = tax.toFixed(2);
+            document.getElementById('summary-gross').textContent = gross.toFixed(2);
+
+            calculateEdgeSummary();
+        }
+
+        function resetForm() {
+            if (confirm('Formular wirklich zurücksetzen?')) {
+                state.materials = [];
+                state.edges = [];
+                state.workHours = [];
+                state.vehicles = [];
+                state.subcontracts = [];
+                state.coatings = [];
+                state.woodParts = [];
+                state.hardware = [];
+                document.getElementById('customer').value = '';
+                document.getElementById('object').value = '';
+                document.getElementById('processed_by').value = '';
+                document.getElementById('margin').value = '10';
+                document.getElementById('discount').value = '0';
+                document.getElementById('date').valueAsDate = new Date();
+
+                state.materials.push({ id: Date.now(), name: '19 weiß', thickness: 19, markup: 20, price: 6.50 });
+                state.materials.push({ id: Date.now() + 1, name: '8 weiß', thickness: 8, markup: 20, price: 4.50 });
+                state.edges.push({ id: Date.now() + 2, name: 'weiß 1', thickness: 1, price: 2.3 });
+                state.edges.push({ id: Date.now() + 3, name: 'weiß 2', thickness: 2, price: 3.5 });
+
+                renderMaterials();
+                renderEdges();
+                renderWorkHours();
+                renderVehicles();
+                renderWoodParts();
+                renderHardware();
+                renderSubcontracts();
+                renderCoatings();
+                calculateAll();
+            }
+        }
+
+        // Initial render mit Standardwerten
+        state.materials.push({ id: Date.now(), name: '19 weiß', thickness: 19, markup: 20, price: 6.50 });
+        state.materials.push({ id: Date.now() + 1, name: '8 weiß', thickness: 8, markup: 20, price: 4.50 });
+        state.edges.push({ id: Date.now() + 2, name: 'weiß 1', thickness: 1, price: 2.3 });
+        state.edges.push({ id: Date.now() + 3, name: 'weiß 2', thickness: 2, price: 3.5 });
+
+        renderMaterials();
+        renderEdges();
+        renderWorkHours();
+        renderVehicles();
+        renderWoodParts();
+        renderHardware();
+        renderSubcontracts();
+        renderCoatings();
+        calculateAll();
+    </script>
+</body>
+</html>
