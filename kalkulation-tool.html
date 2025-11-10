@@ -376,10 +376,26 @@
                 break-inside: avoid;
             }
             table {
-                font-size: 10px;
+                font-size: 9px;
             }
             th, td {
-                padding: 4px;
+                padding: 3px 2px;
+            }
+            /* Holzliste speziell für Druck optimieren */
+            #wood-table {
+                width: 100%;
+                table-layout: fixed;
+            }
+            #wood-table th,
+            #wood-table td {
+                font-size: 8px;
+                padding: 2px 1px;
+                word-wrap: break-word;
+                overflow: hidden;
+            }
+            /* Kantenberechnung beim Druck ausblenden */
+            #edge-summary-table-section {
+                display: none !important;
             }
         }
 
@@ -776,7 +792,7 @@
                 <button class="btn-secondary" onclick="addWoodPart()">+ Holzteil hinzufügen</button>
             </div>
 
-            <div class="section section-full">
+            <div id="edge-summary-table-section" class="section section-full">
                 <div class="section-title">Kantenberechnung Übersicht (nach Kantenbezeichnung)</div>
                 <table id="edge-summary-table">
                     <thead>
@@ -1210,22 +1226,6 @@
                 const b2Name = part.B2 >= 0 && part.B2 < state.edges.length ? state.edges[part.B2].name : 'Keine';
 
                 csv += `${idx + 1};${escapeCSV(part.name)};${escapeCSV(materialName)};${part.qty};${part.length};${part.width};${escapeCSV(l1Name)};${escapeCSV(l2Name)};${escapeCSV(b1Name)};${escapeCSV(b2Name)};${escapeCSV(part.remark)}\n`;
-            });
-
-            csv += '\nKantenberechnung\n';
-            csv += 'Bezeichnung;Kantenart;Stärke;Gesamtlänge (m);€/m;Betrag (€)\n';
-
-            const edgeTable = document.getElementById('edge-summary-tbody');
-            edgeTable.querySelectorAll('tr').forEach(row => {
-                const cols = row.querySelectorAll('td');
-                if (cols.length > 0) {
-                    csv += escapeCSV(cols[0].textContent) + ';' +
-                           escapeCSV(cols[1].textContent) + ';' +
-                           escapeCSV(cols[2].textContent) + ';' +
-                           escapeCSV(cols[3].textContent) + ';' +
-                           escapeCSV(cols[4].textContent) + ';' +
-                           escapeCSV(cols[5].textContent) + '\n';
-                }
             });
 
             downloadCSV(csv, `Holzliste_${document.getElementById('customer').value}_${new Date().toISOString().split('T')[0]}.csv`);
