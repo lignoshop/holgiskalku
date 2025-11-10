@@ -571,6 +571,7 @@
             <button class="tab-btn active" onclick="switchTab(event, 'kalkulation')">Kalkulation</button>
             <button class="tab-btn" onclick="switchTab(event, 'holzliste')">Holzliste</button>
             <button class="tab-btn" onclick="switchTab(event, 'beschlaege')">Beschläge</button>
+            <button class="tab-btn" onclick="switchTab(event, 'bibliothek')">Materialbibliothek</button>
         </div>
 
         <!-- Print Header (nur beim Drucken sichtbar) -->
@@ -644,13 +645,25 @@
                 <div class="section">
                     <div class="section-title">Materialien</div>
                     <div id="materials-container"></div>
-                    <button class="btn-secondary" onclick="addMaterial()">+ Material hinzufügen</button>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="btn-secondary" onclick="addMaterial()">+ Manuell hinzufügen</button>
+                        <select id="library-panel-select" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                            <option value="">📦 Aus Bibliothek wählen...</option>
+                        </select>
+                        <button class="btn-secondary" onclick="addMaterialFromLibrary()">Hinzufügen</button>
+                    </div>
                 </div>
 
                 <div class="section">
                     <div class="section-title">Kanten (Art, Stärke, Preis/m)</div>
                     <div id="edges-container"></div>
-                    <button class="btn-secondary" onclick="addEdge()">+ Kante hinzufügen</button>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="btn-secondary" onclick="addEdge()">+ Manuell hinzufügen</button>
+                        <select id="library-edge-select" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                            <option value="">🔲 Aus Bibliothek wählen...</option>
+                        </select>
+                        <button class="btn-secondary" onclick="addEdgeFromLibrary()">Hinzufügen</button>
+                    </div>
                 </div>
             </div>
 
@@ -895,10 +908,70 @@
                 <button class="export-btn" onclick="exportHardwareListCSV()">📊 Beschlagsliste CSV</button>
             </div>
         </div>
+
+        <!-- MATERIALBIBLIOTHEK TAB -->
+        <div id="bibliothek" class="tab-content">
+            <div class="section section-full">
+                <div class="section-title">Materialbibliothek verwalten</div>
+                <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
+                    Hier können Sie Ihre Standard-Materialien mit allen Eigenschaften hinterlegen.
+                    Diese können dann in der Kalkulation schnell ausgewählt werden.
+                </p>
+
+                <!-- Filter Buttons -->
+                <div style="margin-bottom: 20px;">
+                    <button class="btn-secondary" onclick="showLibraryCategory('panels')" id="lib-filter-panels" style="background: #667eea; color: white;">📦 Platten</button>
+                    <button class="btn-secondary" onclick="showLibraryCategory('edges')" id="lib-filter-edges">🔲 Kanten</button>
+                </div>
+
+                <!-- Platten Bibliothek -->
+                <div id="library-panels-section">
+                    <table id="library-panels-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">Name</th>
+                                <th style="width: 10%;">Länge (mm)</th>
+                                <th style="width: 10%;">Breite (mm)</th>
+                                <th style="width: 8%;">Stärke (mm)</th>
+                                <th style="width: 10%;">€/m²</th>
+                                <th style="width: 10%;">Verschnitt (%)</th>
+                                <th style="width: 22%;">Notizen</th>
+                                <th style="width: 10%;">Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="library-panels-tbody"></tbody>
+                    </table>
+                    <button class="btn-secondary" onclick="addLibraryPanel()">+ Neues Plattenmaterial</button>
+                </div>
+
+                <!-- Kanten Bibliothek -->
+                <div id="library-edges-section" style="display: none;">
+                    <table id="library-edges-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 30%;">Name</th>
+                                <th style="width: 15%;">Stärke (mm)</th>
+                                <th style="width: 15%;">€/m</th>
+                                <th style="width: 30%;">Notizen</th>
+                                <th style="width: 10%;">Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="library-edges-tbody"></tbody>
+                    </table>
+                    <button class="btn-secondary" onclick="addLibraryEdge()">+ Neue Kante</button>
+                </div>
+
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                    <button class="btn-secondary" onclick="exportLibrary()">📤 Bibliothek exportieren</button>
+                    <button class="btn-secondary" onclick="importLibrary()">📥 Bibliothek importieren</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Hidden File Input for Import -->
     <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="handleImportFile(event)">
+    <input type="file" id="import-library-input" accept=".json" style="display: none;" onchange="handleLibraryImportFile(event)">
 
     <script>
         document.getElementById('date').valueAsDate = new Date();
@@ -912,6 +985,12 @@
             coatings: [],
             woodParts: [],
             hardware: []
+        };
+
+        // Materialbibliothek (projektübergreifend, separate LocalStorage)
+        const library = {
+            panels: [],
+            edges: []
         };
 
         // History for Undo functionality
@@ -1251,6 +1330,263 @@
                         calculateAll();
                         dataChanged();
                         alert('Projekt erfolgreich importiert!');
+                    }
+                } catch (e) {
+                    alert('Fehler beim Importieren: ' + e.message);
+                }
+            };
+            reader.readAsText(file);
+
+            // Reset file input
+            event.target.value = '';
+        }
+
+        // ===== MATERIALBIBLIOTHEK FUNCTIONS =====
+
+        // LocalStorage für Bibliothek
+        function saveLibraryToLocalStorage() {
+            localStorage.setItem('materialLibrary', JSON.stringify(library));
+        }
+
+        function loadLibraryFromLocalStorage() {
+            const saved = localStorage.getItem('materialLibrary');
+            if (saved) {
+                try {
+                    const loadedLibrary = JSON.parse(saved);
+                    library.panels = loadedLibrary.panels || [];
+                    library.edges = loadedLibrary.edges || [];
+                } catch (e) {
+                    console.error('Fehler beim Laden der Bibliothek:', e);
+                }
+            }
+        }
+
+        // Kategorie-Wechsel
+        function showLibraryCategory(category) {
+            // Update button styles
+            document.getElementById('lib-filter-panels').style.background = category === 'panels' ? '#667eea' : '#e0e0e0';
+            document.getElementById('lib-filter-panels').style.color = category === 'panels' ? 'white' : '#333';
+            document.getElementById('lib-filter-edges').style.background = category === 'edges' ? '#667eea' : '#e0e0e0';
+            document.getElementById('lib-filter-edges').style.color = category === 'edges' ? 'white' : '#333';
+
+            // Toggle sections
+            document.getElementById('library-panels-section').style.display = category === 'panels' ? 'block' : 'none';
+            document.getElementById('library-edges-section').style.display = category === 'edges' ? 'block' : 'none';
+        }
+
+        // Platten-Bibliothek verwalten
+        function renderLibraryPanels() {
+            const tbody = document.getElementById('library-panels-tbody');
+            tbody.innerHTML = library.panels.map((panel, idx) => `
+                <tr>
+                    <td><input type="text" value="${escapeHtml(panel.name)}" onchange="updateLibraryPanel(${idx}, 'name', this.value)" style="width: 100%;"></td>
+                    <td><input type="number" value="${panel.length || 2800}" onchange="updateLibraryPanel(${idx}, 'length', this.value)" style="width: 100%;" min="0"></td>
+                    <td><input type="number" value="${panel.width || 2070}" onchange="updateLibraryPanel(${idx}, 'width', this.value)" style="width: 100%;" min="0"></td>
+                    <td><input type="number" value="${panel.thickness || 19}" onchange="updateLibraryPanel(${idx}, 'thickness', this.value)" style="width: 100%;" min="0"></td>
+                    <td><input type="number" value="${panel.price || 0}" onchange="updateLibraryPanel(${idx}, 'price', this.value)" style="width: 100%;" min="0" step="0.01"></td>
+                    <td><input type="number" value="${panel.markup || 10}" onchange="updateLibraryPanel(${idx}, 'markup', this.value)" style="width: 100%;" min="0" step="0.1"></td>
+                    <td><input type="text" value="${escapeHtml(panel.notes || '')}" onchange="updateLibraryPanel(${idx}, 'notes', this.value)" style="width: 100%;"></td>
+                    <td>
+                        <button class="delete-btn" onclick="deleteLibraryPanel(${idx})">✕</button>
+                    </td>
+                </tr>
+            `).join('');
+            updateLibrarySelects();
+        }
+
+        function addLibraryPanel() {
+            library.panels.push({
+                name: 'Neues Material',
+                length: 2800,
+                width: 2070,
+                thickness: 19,
+                price: 0,
+                markup: 10,
+                notes: ''
+            });
+            renderLibraryPanels();
+            saveLibraryToLocalStorage();
+        }
+
+        function updateLibraryPanel(idx, field, value) {
+            if (field === 'name' || field === 'notes') {
+                library.panels[idx][field] = value;
+            } else {
+                library.panels[idx][field] = parseFloat(value) || 0;
+            }
+            saveLibraryToLocalStorage();
+        }
+
+        function deleteLibraryPanel(idx) {
+            if (confirm('Dieses Material wirklich aus der Bibliothek löschen?')) {
+                library.panels.splice(idx, 1);
+                renderLibraryPanels();
+                saveLibraryToLocalStorage();
+            }
+        }
+
+        // Kanten-Bibliothek verwalten
+        function renderLibraryEdges() {
+            const tbody = document.getElementById('library-edges-tbody');
+            tbody.innerHTML = library.edges.map((edge, idx) => `
+                <tr>
+                    <td><input type="text" value="${escapeHtml(edge.name)}" onchange="updateLibraryEdge(${idx}, 'name', this.value)" style="width: 100%;"></td>
+                    <td><input type="number" value="${edge.thickness || 2}" onchange="updateLibraryEdge(${idx}, 'thickness', this.value)" style="width: 100%;" min="0" step="0.1"></td>
+                    <td><input type="number" value="${edge.price || 0}" onchange="updateLibraryEdge(${idx}, 'price', this.value)" style="width: 100%;" min="0" step="0.01"></td>
+                    <td><input type="text" value="${escapeHtml(edge.notes || '')}" onchange="updateLibraryEdge(${idx}, 'notes', this.value)" style="width: 100%;"></td>
+                    <td>
+                        <button class="delete-btn" onclick="deleteLibraryEdge(${idx})">✕</button>
+                    </td>
+                </tr>
+            `).join('');
+            updateLibrarySelects();
+        }
+
+        function addLibraryEdge() {
+            library.edges.push({
+                name: 'Neue Kante',
+                thickness: 2,
+                price: 0,
+                notes: ''
+            });
+            renderLibraryEdges();
+            saveLibraryToLocalStorage();
+        }
+
+        function updateLibraryEdge(idx, field, value) {
+            if (field === 'name' || field === 'notes') {
+                library.edges[idx][field] = value;
+            } else {
+                library.edges[idx][field] = parseFloat(value) || 0;
+            }
+            saveLibraryToLocalStorage();
+        }
+
+        function deleteLibraryEdge(idx) {
+            if (confirm('Diese Kante wirklich aus der Bibliothek löschen?')) {
+                library.edges.splice(idx, 1);
+                renderLibraryEdges();
+                saveLibraryToLocalStorage();
+            }
+        }
+
+        // Bibliotheks-Dropdowns populieren
+        function updateLibrarySelects() {
+            // Panel-Select
+            const panelSelect = document.getElementById('library-panel-select');
+            if (panelSelect) {
+                panelSelect.innerHTML = '<option value="">📦 Aus Bibliothek wählen...</option>' +
+                    library.panels.map((panel, idx) => `
+                        <option value="${idx}">${escapeHtml(panel.name)} (${panel.length}×${panel.width}mm, ${panel.price}€/m²)</option>
+                    `).join('');
+            }
+
+            // Edge-Select
+            const edgeSelect = document.getElementById('library-edge-select');
+            if (edgeSelect) {
+                edgeSelect.innerHTML = '<option value="">🔲 Aus Bibliothek wählen...</option>' +
+                    library.edges.map((edge, idx) => `
+                        <option value="${idx}">${escapeHtml(edge.name)} (${edge.thickness}mm, ${edge.price}€/m)</option>
+                    `).join('');
+            }
+        }
+
+        // Material aus Bibliothek hinzufügen
+        function addMaterialFromLibrary() {
+            const select = document.getElementById('library-panel-select');
+            const idx = parseInt(select.value);
+
+            if (isNaN(idx) || idx < 0 || idx >= library.panels.length) {
+                alert('Bitte wählen Sie ein Material aus der Bibliothek aus.');
+                return;
+            }
+
+            const panel = library.panels[idx];
+            saveStateToHistory();
+
+            const id = Date.now();
+            state.materials.push({
+                id,
+                name: panel.name,
+                thickness: panel.thickness,
+                markup: panel.markup,
+                price: panel.price,
+                panelLength: panel.length,
+                panelWidth: panel.width,
+                fromLibrary: true
+            });
+
+            renderMaterials();
+            calculateAll();
+            dataChanged();
+
+            // Reset select
+            select.value = '';
+        }
+
+        // Kante aus Bibliothek hinzufügen
+        function addEdgeFromLibrary() {
+            const select = document.getElementById('library-edge-select');
+            const idx = parseInt(select.value);
+
+            if (isNaN(idx) || idx < 0 || idx >= library.edges.length) {
+                alert('Bitte wählen Sie eine Kante aus der Bibliothek aus.');
+                return;
+            }
+
+            const edge = library.edges[idx];
+            saveStateToHistory();
+
+            const id = Date.now();
+            state.edges.push({
+                id,
+                name: edge.name,
+                thickness: edge.thickness,
+                price: edge.price,
+                fromLibrary: true
+            });
+
+            renderEdges();
+            calculateAll();
+            dataChanged();
+
+            // Reset select
+            select.value = '';
+        }
+
+        // Export/Import der Bibliothek
+        function exportLibrary() {
+            const dataStr = JSON.stringify(library, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Materialbibliothek_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importLibrary() {
+            document.getElementById('import-library-input').click();
+        }
+
+        function handleLibraryImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedLibrary = JSON.parse(e.target.result);
+
+                    if (confirm('Möchten Sie die aktuelle Bibliothek durch die importierte ersetzen?')) {
+                        library.panels = importedLibrary.panels || [];
+                        library.edges = importedLibrary.edges || [];
+
+                        saveLibraryToLocalStorage();
+                        renderLibraryPanels();
+                        renderLibraryEdges();
+                        alert('Bibliothek erfolgreich importiert!');
                     }
                 } catch (e) {
                     alert('Fehler beim Importieren: ' + e.message);
@@ -1872,7 +2208,6 @@
             const panelSummary = {};
             const DEFAULT_PANEL_LENGTH = 2800; // mm
             const DEFAULT_PANEL_WIDTH = 2070; // mm
-            const DEFAULT_PANEL_AREA = (DEFAULT_PANEL_LENGTH * DEFAULT_PANEL_WIDTH) / 1000000; // m²
 
             // Gruppiere nach Material und berechne Gesamtfläche
             state.woodParts.forEach(part => {
@@ -1884,12 +2219,17 @@
                     const partArea = ((part.length * part.width) / 1000000) * (part.qty || 1);
 
                     if (!panelSummary[key]) {
+                        // Verwende Material-spezifisches Plattenformat, falls vorhanden
+                        const panelLength = material.panelLength || DEFAULT_PANEL_LENGTH;
+                        const panelWidth = material.panelWidth || DEFAULT_PANEL_WIDTH;
+                        const panelArea = (panelLength * panelWidth) / 1000000;
+
                         panelSummary[key] = {
                             material: material,
                             totalArea: 0,
-                            panelLength: DEFAULT_PANEL_LENGTH,
-                            panelWidth: DEFAULT_PANEL_WIDTH,
-                            panelArea: DEFAULT_PANEL_AREA
+                            panelLength: panelLength,
+                            panelWidth: panelWidth,
+                            panelArea: panelArea
                         };
                     }
 
@@ -2044,7 +2384,14 @@
 
         // ===== INITIALIZATION =====
         window.addEventListener('load', function() {
-            // Try to load from localStorage first
+            // Load library from localStorage
+            loadLibraryFromLocalStorage();
+
+            // Render library views
+            renderLibraryPanels();
+            renderLibraryEdges();
+
+            // Try to load project from localStorage first
             const loaded = loadFromLocalStorage();
 
             // If nothing was loaded, initialize with default values
