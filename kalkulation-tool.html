@@ -221,6 +221,21 @@
             background: #ff5252;
         }
 
+        .duplicate-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+        .duplicate-btn:hover {
+            background: #2563eb;
+        }
+
         .tab-buttons {
             display: flex;
             gap: 10px;
@@ -298,6 +313,53 @@
             padding: 6px 8px;
         }
 
+        /* Auto-Save Indicator */
+        .save-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            background: #10b981;
+            color: white;
+            border-radius: 5px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+
+        .save-indicator.show {
+            opacity: 1;
+        }
+
+        /* Undo Button */
+        .undo-btn {
+            background: #8b5cf6;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+            z-index: 1000;
+        }
+
+        .undo-btn:hover {
+            background: #7c3aed;
+            transform: scale(1.1);
+        }
+
+        .undo-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
         @media print {
             body {
                 background: white;
@@ -307,7 +369,7 @@
                 box-shadow: none;
                 max-width: 100%;
             }
-            .actions, .tab-buttons, .btn-secondary, .delete-btn {
+            .actions, .tab-buttons, .btn-secondary, .delete-btn, .duplicate-btn, .save-indicator, .undo-btn {
                 display: none !important;
             }
             .section {
@@ -362,19 +424,32 @@
         .print-info-label {
             font-weight: 600;
         }
+
+        /* Keyboard Shortcut Hint */
+        .shortcut-hint {
+            font-size: 11px;
+            color: #999;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
+    <!-- Save Indicator -->
+    <div id="save-indicator" class="save-indicator">Gespeichert ✓</div>
+
+    <!-- Undo Button -->
+    <button id="undo-btn" class="undo-btn no-print" onclick="undoLastChange()" disabled title="Rückgängig (Strg+Z)">↶</button>
+
     <div class="container">
         <header class="no-print">
-            <h1>Möbel-Kalkulations-Tool</h1>
-            <p class="subtitle">Interne Preisberechnung für Möbelprojekte</p>
+            <h1>Möbel-Kalkulations-Tool <span class="shortcut-hint">Strg+S = Speichern | Strg+Z = Rückgängig</span></h1>
+            <p class="subtitle">Interne Preisberechnung für Möbelprojekte - Auto-Save aktiv</p>
         </header>
 
         <div class="tab-buttons no-print">
-            <button class="tab-btn active" onclick="switchTab('kalkulation')">Kalkulation</button>
-            <button class="tab-btn" onclick="switchTab('holzliste')">Holzliste</button>
-            <button class="tab-btn" onclick="switchTab('beschlaege')">Beschläge</button>
+            <button class="tab-btn active" onclick="switchTab(event, 'kalkulation')">Kalkulation</button>
+            <button class="tab-btn" onclick="switchTab(event, 'holzliste')">Holzliste</button>
+            <button class="tab-btn" onclick="switchTab(event, 'beschlaege')">Beschläge</button>
         </div>
 
         <!-- Print Header (nur beim Drucken sichtbar) -->
@@ -407,19 +482,19 @@
                     <div class="section-title">Allgemeine Angaben</div>
                     <div class="form-group">
                         <label>Kunde</label>
-                        <input type="text" id="customer" placeholder="z.B. Rudolphi">
+                        <input type="text" id="customer" placeholder="z.B. Rudolphi" oninput="dataChanged()">
                     </div>
                     <div class="form-group">
                         <label>Gegenstand</label>
-                        <input type="text" id="object" placeholder="z.B. Badschrank">
+                        <input type="text" id="object" placeholder="z.B. Badschrank" oninput="dataChanged()">
                     </div>
                     <div class="form-group">
                         <label>Bearbeitet von</label>
-                        <input type="text" id="processed_by">
+                        <input type="text" id="processed_by" oninput="dataChanged()">
                     </div>
                     <div class="form-group">
                         <label>Datum</label>
-                        <input type="date" id="date">
+                        <input type="date" id="date" onchange="dataChanged()">
                     </div>
                 </div>
 
@@ -427,19 +502,19 @@
                     <div class="section-title">Variablen</div>
                     <div class="form-group">
                         <label>Stundensatz Geselle (€/h)</label>
-                        <input type="number" id="wage1" value="68" step="0.50">
+                        <input type="number" id="wage1" value="68" step="0.50" min="0" oninput="dataChanged()">
                     </div>
                     <div class="form-group">
                         <label>Stundensatz 2 (€/h)</label>
-                        <input type="number" id="wage2" value="58" step="0.50">
+                        <input type="number" id="wage2" value="58" step="0.50" min="0" oninput="dataChanged()">
                     </div>
                     <div class="form-group">
                         <label>Stundensatz 3 (€/h)</label>
-                        <input type="number" id="wage3" step="0.50">
+                        <input type="number" id="wage3" step="0.50" min="0" oninput="dataChanged()">
                     </div>
                     <div class="form-group">
                         <label>KFZ-Kosten (€/km)</label>
-                        <input type="number" id="vehicle_cost" value="0.4" step="0.01">
+                        <input type="number" id="vehicle_cost" value="0.4" step="0.01" min="0" oninput="dataChanged()">
                     </div>
                 </div>
             </div>
@@ -591,11 +666,11 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div class="form-group">
                         <label>Gewinnzuschlag auf Selbstkosten (%)</label>
-                        <input type="number" id="margin" value="10" step="1" onchange="calculateAll()">
+                        <input type="number" id="margin" value="10" step="1" min="0" onchange="calculateAll(); dataChanged()">
                     </div>
                     <div class="form-group">
                         <label>Rabatt auf Gesamtpreis (%)</label>
-                        <input type="number" id="discount" value="0" step="0.5" onchange="calculateAll()">
+                        <input type="number" id="discount" value="0" step="0.5" min="0" max="100" onchange="calculateAll(); dataChanged()">
                     </div>
                 </div>
             </div>
@@ -604,6 +679,8 @@
                 <button class="btn-primary" onclick="calculateAll()">🔄 Berechnen</button>
                 <button class="print-btn" onclick="window.print()">🖨️ Alles Drucken</button>
                 <button class="export-btn" onclick="exportCSV()">📊 Komplett-CSV</button>
+                <button class="export-btn" onclick="exportProjectJSON()">💾 Projekt Exportieren</button>
+                <button class="btn-primary" onclick="importProjectJSON()">📂 Projekt Importieren</button>
                 <button class="btn-secondary" onclick="resetForm()">🔄 Zurücksetzen</button>
             </div>
         </div>
@@ -684,6 +761,9 @@
         </div>
     </div>
 
+    <!-- Hidden File Input for Import -->
+    <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="handleImportFile(event)">
+
     <script>
         document.getElementById('date').valueAsDate = new Date();
 
@@ -698,7 +778,225 @@
             hardware: []
         };
 
-        function switchTab(tabName) {
+        // History for Undo functionality
+        const history = {
+            stack: [],
+            maxSize: 50,
+            push: function(snapshot) {
+                this.stack.push(snapshot);
+                if (this.stack.length > this.maxSize) {
+                    this.stack.shift();
+                }
+                updateUndoButton();
+            },
+            pop: function() {
+                const snapshot = this.stack.pop();
+                updateUndoButton();
+                return snapshot;
+            },
+            clear: function() {
+                this.stack = [];
+                updateUndoButton();
+            }
+        };
+
+        let hasUnsavedChanges = false;
+        let autoSaveTimeout = null;
+
+        // ===== SECURITY: HTML ESCAPING =====
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ===== SECURITY: CSV ESCAPING =====
+        function escapeCSV(text) {
+            if (text === null || text === undefined) return '';
+            text = String(text);
+            // Wenn der Text Semikolon, Anführungszeichen oder Zeilenumbruch enthält, in Anführungszeichen setzen
+            if (text.includes(';') || text.includes('"') || text.includes('\n') || text.includes('\r')) {
+                text = '"' + text.replace(/"/g, '""') + '"';
+            }
+            return text;
+        }
+
+        // ===== UNDO FUNCTIONALITY =====
+        function saveStateToHistory() {
+            const snapshot = {
+                state: JSON.parse(JSON.stringify(state)),
+                formData: {
+                    customer: document.getElementById('customer').value,
+                    object: document.getElementById('object').value,
+                    processed_by: document.getElementById('processed_by').value,
+                    date: document.getElementById('date').value,
+                    wage1: document.getElementById('wage1').value,
+                    wage2: document.getElementById('wage2').value,
+                    wage3: document.getElementById('wage3').value,
+                    vehicle_cost: document.getElementById('vehicle_cost').value,
+                    margin: document.getElementById('margin').value,
+                    discount: document.getElementById('discount').value
+                }
+            };
+            history.push(snapshot);
+        }
+
+        function undoLastChange() {
+            if (history.stack.length === 0) return;
+
+            const snapshot = history.pop();
+            if (snapshot) {
+                // Restore state
+                state.materials = JSON.parse(JSON.stringify(snapshot.state.materials));
+                state.edges = JSON.parse(JSON.stringify(snapshot.state.edges));
+                state.workHours = JSON.parse(JSON.stringify(snapshot.state.workHours));
+                state.vehicles = JSON.parse(JSON.stringify(snapshot.state.vehicles));
+                state.subcontracts = JSON.parse(JSON.stringify(snapshot.state.subcontracts));
+                state.coatings = JSON.parse(JSON.stringify(snapshot.state.coatings));
+                state.woodParts = JSON.parse(JSON.stringify(snapshot.state.woodParts));
+                state.hardware = JSON.parse(JSON.stringify(snapshot.state.hardware));
+
+                // Restore form data
+                document.getElementById('customer').value = snapshot.formData.customer;
+                document.getElementById('object').value = snapshot.formData.object;
+                document.getElementById('processed_by').value = snapshot.formData.processed_by;
+                document.getElementById('date').value = snapshot.formData.date;
+                document.getElementById('wage1').value = snapshot.formData.wage1;
+                document.getElementById('wage2').value = snapshot.formData.wage2;
+                document.getElementById('wage3').value = snapshot.formData.wage3;
+                document.getElementById('vehicle_cost').value = snapshot.formData.vehicle_cost;
+                document.getElementById('margin').value = snapshot.formData.margin;
+                document.getElementById('discount').value = snapshot.formData.discount;
+
+                // Re-render everything
+                renderAll();
+                calculateAll();
+                showSaveIndicator('Rückgängig gemacht');
+            }
+        }
+
+        function updateUndoButton() {
+            const undoBtn = document.getElementById('undo-btn');
+            undoBtn.disabled = history.stack.length === 0;
+        }
+
+        // ===== AUTO-SAVE FUNCTIONALITY =====
+        function dataChanged() {
+            hasUnsavedChanges = true;
+
+            // Debounce auto-save
+            if (autoSaveTimeout) {
+                clearTimeout(autoSaveTimeout);
+            }
+
+            autoSaveTimeout = setTimeout(() => {
+                saveToLocalStorage();
+                showSaveIndicator();
+            }, 1000); // Auto-save after 1 second of no changes
+        }
+
+        function saveToLocalStorage() {
+            const data = {
+                state: state,
+                formData: {
+                    customer: document.getElementById('customer').value,
+                    object: document.getElementById('object').value,
+                    processed_by: document.getElementById('processed_by').value,
+                    date: document.getElementById('date').value,
+                    wage1: document.getElementById('wage1').value,
+                    wage2: document.getElementById('wage2').value,
+                    wage3: document.getElementById('wage3').value,
+                    vehicle_cost: document.getElementById('vehicle_cost').value,
+                    margin: document.getElementById('margin').value,
+                    discount: document.getElementById('discount').value
+                },
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                localStorage.setItem('kalkulation-autosave', JSON.stringify(data));
+                hasUnsavedChanges = false;
+            } catch (e) {
+                console.error('Fehler beim Speichern:', e);
+                alert('Fehler beim automatischen Speichern. Bitte exportieren Sie Ihre Daten manuell.');
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('kalkulation-autosave');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+
+                    // Restore state
+                    state.materials = data.state.materials || [];
+                    state.edges = data.state.edges || [];
+                    state.workHours = data.state.workHours || [];
+                    state.vehicles = data.state.vehicles || [];
+                    state.subcontracts = data.state.subcontracts || [];
+                    state.coatings = data.state.coatings || [];
+                    state.woodParts = data.state.woodParts || [];
+                    state.hardware = data.state.hardware || [];
+
+                    // Restore form data
+                    if (data.formData) {
+                        document.getElementById('customer').value = data.formData.customer || '';
+                        document.getElementById('object').value = data.formData.object || '';
+                        document.getElementById('processed_by').value = data.formData.processed_by || '';
+                        document.getElementById('date').value = data.formData.date || new Date().toISOString().split('T')[0];
+                        document.getElementById('wage1').value = data.formData.wage1 || '68';
+                        document.getElementById('wage2').value = data.formData.wage2 || '58';
+                        document.getElementById('wage3').value = data.formData.wage3 || '';
+                        document.getElementById('vehicle_cost').value = data.formData.vehicle_cost || '0.4';
+                        document.getElementById('margin').value = data.formData.margin || '10';
+                        document.getElementById('discount').value = data.formData.discount || '0';
+                    }
+
+                    return true;
+                }
+            } catch (e) {
+                console.error('Fehler beim Laden:', e);
+            }
+            return false;
+        }
+
+        function showSaveIndicator(message = 'Gespeichert ✓') {
+            const indicator = document.getElementById('save-indicator');
+            indicator.textContent = message;
+            indicator.classList.add('show');
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 2000);
+        }
+
+        // ===== KEYBOARD SHORTCUTS =====
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+S or Cmd+S - Manual Save
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveToLocalStorage();
+                showSaveIndicator('Manuell gespeichert ✓');
+            }
+
+            // Ctrl+Z or Cmd+Z - Undo
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                undoLastChange();
+            }
+        });
+
+        // ===== WARN BEFORE LEAVING =====
+        window.addEventListener('beforeunload', function(e) {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+                return '';
+            }
+        });
+
+        // ===== TAB SWITCHING (BUG FIX) =====
+        function switchTab(event, tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
@@ -719,47 +1017,120 @@
         function printWoodList() {
             updatePrintHeader();
             document.getElementById('print-title').textContent = 'Holzliste';
-
-            // Alle Tabs ausblenden
             document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
-            // Nur Holzliste anzeigen
             document.getElementById('holzliste').style.display = 'block';
-
             window.print();
-
-            // Zurücksetzen nach Druck
             setTimeout(() => {
                 document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = '');
                 document.getElementById('holzliste').style.display = 'block';
-                switchTab('holzliste');
+                switchTab({target: document.querySelectorAll('.tab-btn')[1]}, 'holzliste');
             }, 100);
         }
 
         function printHardwareList() {
             updatePrintHeader();
             document.getElementById('print-title').textContent = 'Beschlagsliste';
-
-            // Alle Tabs ausblenden
             document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
-            // Nur Beschläge anzeigen
             document.getElementById('beschlaege').style.display = 'block';
-
             window.print();
-
-            // Zurücksetzen nach Druck
             setTimeout(() => {
                 document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = '');
                 document.getElementById('beschlaege').style.display = 'block';
-                switchTab('beschlaege');
+                switchTab({target: document.querySelectorAll('.tab-btn')[2]}, 'beschlaege');
             }, 100);
+        }
+
+        // ===== PROJECT IMPORT/EXPORT =====
+        function exportProjectJSON() {
+            const projectData = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                state: state,
+                formData: {
+                    customer: document.getElementById('customer').value,
+                    object: document.getElementById('object').value,
+                    processed_by: document.getElementById('processed_by').value,
+                    date: document.getElementById('date').value,
+                    wage1: document.getElementById('wage1').value,
+                    wage2: document.getElementById('wage2').value,
+                    wage3: document.getElementById('wage3').value,
+                    vehicle_cost: document.getElementById('vehicle_cost').value,
+                    margin: document.getElementById('margin').value,
+                    discount: document.getElementById('discount').value
+                }
+            };
+
+            const json = JSON.stringify(projectData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const link = document.createElement('a');
+            const filename = `Projekt_${document.getElementById('customer').value || 'Unbenannt'}_${new Date().toISOString().split('T')[0]}.json`;
+            link.setAttribute('href', URL.createObjectURL(blob));
+            link.setAttribute('download', filename);
+            link.click();
+        }
+
+        function importProjectJSON() {
+            document.getElementById('import-file-input').click();
+        }
+
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const projectData = JSON.parse(e.target.result);
+
+                    if (confirm('Möchten Sie das aktuelle Projekt durch das importierte ersetzen?')) {
+                        // Save to history before importing
+                        saveStateToHistory();
+
+                        // Import state
+                        state.materials = projectData.state.materials || [];
+                        state.edges = projectData.state.edges || [];
+                        state.workHours = projectData.state.workHours || [];
+                        state.vehicles = projectData.state.vehicles || [];
+                        state.subcontracts = projectData.state.subcontracts || [];
+                        state.coatings = projectData.state.coatings || [];
+                        state.woodParts = projectData.state.woodParts || [];
+                        state.hardware = projectData.state.hardware || [];
+
+                        // Import form data
+                        if (projectData.formData) {
+                            document.getElementById('customer').value = projectData.formData.customer || '';
+                            document.getElementById('object').value = projectData.formData.object || '';
+                            document.getElementById('processed_by').value = projectData.formData.processed_by || '';
+                            document.getElementById('date').value = projectData.formData.date || new Date().toISOString().split('T')[0];
+                            document.getElementById('wage1').value = projectData.formData.wage1 || '68';
+                            document.getElementById('wage2').value = projectData.formData.wage2 || '58';
+                            document.getElementById('wage3').value = projectData.formData.wage3 || '';
+                            document.getElementById('vehicle_cost').value = projectData.formData.vehicle_cost || '0.4';
+                            document.getElementById('margin').value = projectData.formData.margin || '10';
+                            document.getElementById('discount').value = projectData.formData.discount || '0';
+                        }
+
+                        renderAll();
+                        calculateAll();
+                        dataChanged();
+                        alert('Projekt erfolgreich importiert!');
+                    }
+                } catch (e) {
+                    alert('Fehler beim Importieren: ' + e.message);
+                }
+            };
+            reader.readAsText(file);
+
+            // Reset file input
+            event.target.value = '';
         }
 
         // ===== EXPORT CSV FUNCTIONS =====
         function exportWoodListCSV() {
             let csv = 'Holzliste\n';
-            csv += `Kunde;${document.getElementById('customer').value}\n`;
-            csv += `Gegenstand;${document.getElementById('object').value}\n`;
-            csv += `Datum;${document.getElementById('date').value}\n\n`;
+            csv += `Kunde;${escapeCSV(document.getElementById('customer').value)}\n`;
+            csv += `Gegenstand;${escapeCSV(document.getElementById('object').value)}\n`;
+            csv += `Datum;${escapeCSV(document.getElementById('date').value)}\n\n`;
 
             csv += 'Pos.;Bezeichnung;Material;Stk.;Länge (mm);Breite (mm);L1;L2;B1;B2;Bemerkung\n';
 
@@ -773,7 +1144,7 @@
                 const b1Name = part.B1 >= 0 && part.B1 < state.edges.length ? state.edges[part.B1].name : 'Keine';
                 const b2Name = part.B2 >= 0 && part.B2 < state.edges.length ? state.edges[part.B2].name : 'Keine';
 
-                csv += `${idx + 1};${part.name};${materialName};${part.qty};${part.length};${part.width};${l1Name};${l2Name};${b1Name};${b2Name};${part.remark}\n`;
+                csv += `${idx + 1};${escapeCSV(part.name)};${escapeCSV(materialName)};${part.qty};${part.length};${part.width};${escapeCSV(l1Name)};${escapeCSV(l2Name)};${escapeCSV(b1Name)};${escapeCSV(b2Name)};${escapeCSV(part.remark)}\n`;
             });
 
             csv += '\nKantenberechnung\n';
@@ -783,8 +1154,12 @@
             edgeTable.querySelectorAll('tr').forEach(row => {
                 const cols = row.querySelectorAll('td');
                 if (cols.length > 0) {
-                    csv += cols[0].textContent + ';' + cols[1].textContent + ';' + cols[2].textContent + ';' +
-                           cols[3].textContent + ';' + cols[4].textContent + ';' + cols[5].textContent + '\n';
+                    csv += escapeCSV(cols[0].textContent) + ';' +
+                           escapeCSV(cols[1].textContent) + ';' +
+                           escapeCSV(cols[2].textContent) + ';' +
+                           escapeCSV(cols[3].textContent) + ';' +
+                           escapeCSV(cols[4].textContent) + ';' +
+                           escapeCSV(cols[5].textContent) + '\n';
                 }
             });
 
@@ -793,15 +1168,15 @@
 
         function exportHardwareListCSV() {
             let csv = 'Beschlagsliste\n';
-            csv += `Kunde;${document.getElementById('customer').value}\n`;
-            csv += `Gegenstand;${document.getElementById('object').value}\n`;
-            csv += `Datum;${document.getElementById('date').value}\n\n`;
+            csv += `Kunde;${escapeCSV(document.getElementById('customer').value)}\n`;
+            csv += `Gegenstand;${escapeCSV(document.getElementById('object').value)}\n`;
+            csv += `Datum;${escapeCSV(document.getElementById('date').value)}\n\n`;
 
             csv += 'Beschreibung;Anzahl;Einheit;€/Einheit;Summe (€)\n';
 
             state.hardware.forEach(h => {
                 const sum = (h.quantity || 0) * (h.pricePerUnit || 0);
-                csv += `${h.description};${h.quantity};${h.unit};${h.pricePerUnit.toFixed(2)};${sum.toFixed(2)}\n`;
+                csv += `${escapeCSV(h.description)};${h.quantity};${escapeCSV(h.unit)};${h.pricePerUnit.toFixed(2)};${sum.toFixed(2)}\n`;
             });
 
             csv += '\n';
@@ -813,10 +1188,10 @@
 
         function exportCSV() {
             let csv = 'Komplette Kalkulation\n';
-            csv += `Kunde;${document.getElementById('customer').value}\n`;
-            csv += `Gegenstand;${document.getElementById('object').value}\n`;
-            csv += `Bearbeitet von;${document.getElementById('processed_by').value}\n`;
-            csv += `Datum;${document.getElementById('date').value}\n\n`;
+            csv += `Kunde;${escapeCSV(document.getElementById('customer').value)}\n`;
+            csv += `Gegenstand;${escapeCSV(document.getElementById('object').value)}\n`;
+            csv += `Bearbeitet von;${escapeCSV(document.getElementById('processed_by').value)}\n`;
+            csv += `Datum;${escapeCSV(document.getElementById('date').value)}\n\n`;
 
             // Holzliste
             csv += 'HOLZLISTE\n';
@@ -829,14 +1204,14 @@
                 const l2Name = part.L2 >= 0 && part.L2 < state.edges.length ? state.edges[part.L2].name : 'Keine';
                 const b1Name = part.B1 >= 0 && part.B1 < state.edges.length ? state.edges[part.B1].name : 'Keine';
                 const b2Name = part.B2 >= 0 && part.B2 < state.edges.length ? state.edges[part.B2].name : 'Keine';
-                csv += `${idx + 1};${part.name};${materialName};${part.qty};${part.length};${part.width};${l1Name};${l2Name};${b1Name};${b2Name};${part.remark}\n`;
+                csv += `${idx + 1};${escapeCSV(part.name)};${escapeCSV(materialName)};${part.qty};${part.length};${part.width};${escapeCSV(l1Name)};${escapeCSV(l2Name)};${escapeCSV(b1Name)};${escapeCSV(b2Name)};${escapeCSV(part.remark)}\n`;
             });
 
             csv += '\nBESCHLAGSLISTE\n';
             csv += 'Beschreibung;Anzahl;Einheit;€/Einheit;Summe\n';
             state.hardware.forEach(h => {
                 const sum = (h.quantity || 0) * (h.pricePerUnit || 0);
-                csv += `${h.description};${h.quantity};${h.unit};${h.pricePerUnit.toFixed(2)};${sum.toFixed(2)}\n`;
+                csv += `${escapeCSV(h.description)};${h.quantity};${escapeCSV(h.unit)};${h.pricePerUnit.toFixed(2)};${sum.toFixed(2)}\n`;
             });
 
             csv += '\nKALKULATION\n';
@@ -858,7 +1233,7 @@
         }
 
         function downloadCSV(content, filename) {
-            const BOM = '\uFEFF'; // UTF-8 BOM für Excel
+            const BOM = '\uFEFF';
             const blob = new Blob([BOM + content], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.setAttribute('href', URL.createObjectURL(blob));
@@ -868,15 +1243,32 @@
 
         // ===== MATERIAL FUNCTIONS =====
         function addMaterial() {
+            saveStateToHistory();
             const id = Date.now();
             state.materials.push({ id, name: '', thickness: 0, markup: 0, price: 0 });
             renderMaterials();
+            dataChanged();
         }
 
         function removeMaterial(id) {
-            state.materials = state.materials.filter(m => m.id !== id);
-            renderMaterials();
-            calculateAll();
+            if (confirm('Material wirklich löschen?')) {
+                saveStateToHistory();
+                state.materials = state.materials.filter(m => m.id !== id);
+                renderMaterials();
+                calculateAll();
+                dataChanged();
+            }
+        }
+
+        function duplicateMaterial(id) {
+            saveStateToHistory();
+            const material = state.materials.find(m => m.id === id);
+            if (material) {
+                const newMaterial = { ...material, id: Date.now() };
+                state.materials.push(newMaterial);
+                renderMaterials();
+                dataChanged();
+            }
         }
 
         function renderMaterials() {
@@ -887,23 +1279,26 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                         <div>
                             <label style="font-size: 12px;">Materialbezeichnung</label>
-                            <input type="text" placeholder="z.B. Hochglanz" value="${m.name}" onchange="state.materials.find(x => x.id === ${m.id}).name = this.value; calculateAll()">
+                            <input type="text" placeholder="z.B. Hochglanz" value="${escapeHtml(m.name)}" oninput="state.materials.find(x => x.id === ${m.id}).name = this.value; calculateAll(); dataChanged()">
                         </div>
                         <div>
                             <label style="font-size: 12px;">Stärke (mm)</label>
-                            <input type="number" placeholder="19" value="${m.thickness}" onchange="state.materials.find(x => x.id === ${m.id}).thickness = parseFloat(this.value); calculateAll()">
+                            <input type="number" placeholder="19" value="${m.thickness}" min="0" oninput="state.materials.find(x => x.id === ${m.id}).thickness = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged()">
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 50px; gap: 10px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 10px;">
                         <div>
                             <label style="font-size: 12px;">Verschnitt (%)</label>
-                            <input type="number" placeholder="20" value="${m.markup}" onchange="state.materials.find(x => x.id === ${m.id}).markup = parseFloat(this.value); calculateAll()">
+                            <input type="number" placeholder="20" value="${m.markup}" min="0" oninput="state.materials.find(x => x.id === ${m.id}).markup = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged()">
                         </div>
                         <div>
                             <label style="font-size: 12px;">€/m²</label>
-                            <input type="number" placeholder="25" value="${m.price}" step="0.01" onchange="state.materials.find(x => x.id === ${m.id}).price = parseFloat(this.value); calculateAll()">
+                            <input type="number" placeholder="25" value="${m.price}" step="0.01" min="0" oninput="state.materials.find(x => x.id === ${m.id}).price = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged()">
                         </div>
-                        <button class="delete-btn" onclick="removeMaterial(${m.id})" style="height: 38px; margin-top: 20px;">✕</button>
+                        <div style="display: flex; gap: 5px; align-items: flex-end;">
+                            <button class="duplicate-btn" onclick="duplicateMaterial(${m.id})" title="Duplizieren">⎘</button>
+                            <button class="delete-btn" onclick="removeMaterial(${m.id})">✕</button>
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -911,15 +1306,32 @@
 
         // ===== EDGE FUNCTIONS =====
         function addEdge() {
+            saveStateToHistory();
             const id = Date.now();
             state.edges.push({ id, name: '', thickness: 0, price: 0 });
             renderEdges();
+            dataChanged();
         }
 
         function removeEdge(id) {
-            state.edges = state.edges.filter(e => e.id !== id);
-            renderEdges();
-            calculateAll();
+            if (confirm('Kante wirklich löschen?')) {
+                saveStateToHistory();
+                state.edges = state.edges.filter(e => e.id !== id);
+                renderEdges();
+                calculateAll();
+                dataChanged();
+            }
+        }
+
+        function duplicateEdge(id) {
+            saveStateToHistory();
+            const edge = state.edges.find(e => e.id === id);
+            if (edge) {
+                const newEdge = { ...edge, id: Date.now() };
+                state.edges.push(newEdge);
+                renderEdges();
+                dataChanged();
+            }
         }
 
         function renderEdges() {
@@ -930,19 +1342,22 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                         <div>
                             <label style="font-size: 12px;">Kantenart</label>
-                            <input type="text" placeholder="z.B. ABS" value="${e.name}" onchange="state.edges.find(x => x.id === ${e.id}).name = this.value; calculateAll()">
+                            <input type="text" placeholder="z.B. ABS" value="${escapeHtml(e.name)}" oninput="state.edges.find(x => x.id === ${e.id}).name = this.value; calculateAll(); dataChanged()">
                         </div>
                         <div>
                             <label style="font-size: 12px;">Stärke (mm)</label>
-                            <input type="number" placeholder="2" value="${e.thickness}" onchange="state.edges.find(x => x.id === ${e.id}).thickness = parseFloat(this.value); calculateAll()">
+                            <input type="number" placeholder="2" value="${e.thickness}" min="0" oninput="state.edges.find(x => x.id === ${e.id}).thickness = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged()">
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 50px; gap: 10px;">
+                    <div style="display: grid; grid-template-columns: 1fr 100px; gap: 10px;">
                         <div>
                             <label style="font-size: 12px;">Preis pro m (€)</label>
-                            <input type="number" placeholder="2" value="${e.price}" step="0.01" onchange="state.edges.find(x => x.id === ${e.id}).price = parseFloat(this.value); calculateAll()">
+                            <input type="number" placeholder="2" value="${e.price}" step="0.01" min="0" oninput="state.edges.find(x => x.id === ${e.id}).price = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged()">
                         </div>
-                        <button class="delete-btn" onclick="removeEdge(${e.id})" style="height: 38px; margin-top: 20px;">✕</button>
+                        <div style="display: flex; gap: 5px; align-items: flex-end;">
+                            <button class="duplicate-btn" onclick="duplicateEdge(${e.id})" title="Duplizieren">⎘</button>
+                            <button class="delete-btn" onclick="removeEdge(${e.id})">✕</button>
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -950,15 +1365,30 @@
 
         // ===== SUBCONTRACT FUNCTIONS =====
         function addSubcontract() {
+            saveStateToHistory();
             const id = Date.now();
             state.subcontracts.push({ id, description: '', quantity: 0, unit: 'Stk.', pricePerUnit: 0 });
             renderSubcontracts();
+            dataChanged();
         }
 
         function removeSubcontract(id) {
+            saveStateToHistory();
             state.subcontracts = state.subcontracts.filter(s => s.id !== id);
             renderSubcontracts();
             calculateAll();
+            dataChanged();
+        }
+
+        function duplicateSubcontract(id) {
+            saveStateToHistory();
+            const item = state.subcontracts.find(s => s.id === id);
+            if (item) {
+                const newItem = { ...item, id: Date.now() };
+                state.subcontracts.push(newItem);
+                renderSubcontracts();
+                dataChanged();
+            }
         }
 
         function renderSubcontracts() {
@@ -967,12 +1397,15 @@
                 const sum = (s.quantity || 0) * (s.pricePerUnit || 0);
                 return `
                     <tr>
-                        <td><input type="text" value="${s.description}" onchange="state.subcontracts.find(x => x.id === ${s.id}).description = this.value; calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
-                        <td><input type="number" value="${s.quantity}" step="0.1" onchange="state.subcontracts.find(x => x.id === ${s.id}).quantity = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
-                        <td><input type="text" value="${s.unit}" onchange="state.subcontracts.find(x => x.id === ${s.id}).unit = this.value;" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
-                        <td><input type="number" value="${s.pricePerUnit}" step="0.01" onchange="state.subcontracts.find(x => x.id === ${s.id}).pricePerUnit = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="text" value="${escapeHtml(s.description)}" oninput="state.subcontracts.find(x => x.id === ${s.id}).description = this.value; calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${s.quantity}" step="0.1" min="0" oninput="state.subcontracts.find(x => x.id === ${s.id}).quantity = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="text" value="${escapeHtml(s.unit)}" oninput="state.subcontracts.find(x => x.id === ${s.id}).unit = this.value; dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${s.pricePerUnit}" step="0.01" min="0" oninput="state.subcontracts.find(x => x.id === ${s.id}).pricePerUnit = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
                         <td>${sum.toFixed(2)}</td>
-                        <td class="no-print"><button class="delete-btn" onclick="removeSubcontract(${s.id})">✕</button></td>
+                        <td class="no-print">
+                            <button class="duplicate-btn" onclick="duplicateSubcontract(${s.id})" title="Duplizieren">⎘</button>
+                            <button class="delete-btn" onclick="removeSubcontract(${s.id})">✕</button>
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -980,15 +1413,30 @@
 
         // ===== COATING FUNCTIONS =====
         function addCoating() {
+            saveStateToHistory();
             const id = Date.now();
             state.coatings.push({ id, description: '', liters: 0, pricePerLiter: 0 });
             renderCoatings();
+            dataChanged();
         }
 
         function removeCoating(id) {
+            saveStateToHistory();
             state.coatings = state.coatings.filter(c => c.id !== id);
             renderCoatings();
             calculateAll();
+            dataChanged();
+        }
+
+        function duplicateCoating(id) {
+            saveStateToHistory();
+            const item = state.coatings.find(c => c.id === id);
+            if (item) {
+                const newItem = { ...item, id: Date.now() };
+                state.coatings.push(newItem);
+                renderCoatings();
+                dataChanged();
+            }
         }
 
         function renderCoatings() {
@@ -997,11 +1445,14 @@
                 const sum = (c.liters || 0) * (c.pricePerLiter || 0);
                 return `
                     <tr>
-                        <td><input type="text" value="${c.description}" onchange="state.coatings.find(x => x.id === ${c.id}).description = this.value; calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
-                        <td><input type="number" value="${c.liters}" step="0.1" onchange="state.coatings.find(x => x.id === ${c.id}).liters = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
-                        <td><input type="number" value="${c.pricePerLiter}" step="0.01" onchange="state.coatings.find(x => x.id === ${c.id}).pricePerLiter = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="text" value="${escapeHtml(c.description)}" oninput="state.coatings.find(x => x.id === ${c.id}).description = this.value; calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${c.liters}" step="0.1" min="0" oninput="state.coatings.find(x => x.id === ${c.id}).liters = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${c.pricePerLiter}" step="0.01" min="0" oninput="state.coatings.find(x => x.id === ${c.id}).pricePerLiter = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
                         <td>${sum.toFixed(2)}</td>
-                        <td class="no-print"><button class="delete-btn" onclick="removeCoating(${c.id})">✕</button></td>
+                        <td class="no-print">
+                            <button class="duplicate-btn" onclick="duplicateCoating(${c.id})" title="Duplizieren">⎘</button>
+                            <button class="delete-btn" onclick="removeCoating(${c.id})">✕</button>
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -1009,37 +1460,55 @@
 
         // ===== WORK HOUR FUNCTIONS =====
         function addWorkHour() {
+            saveStateToHistory();
             const id = Date.now();
             state.workHours.push({ id, position: '', hours: 0, wage: 1 });
             renderWorkHours();
+            dataChanged();
         }
 
         function removeWorkHour(id) {
+            saveStateToHistory();
             state.workHours = state.workHours.filter(w => w.id !== id);
             renderWorkHours();
             calculateAll();
+            dataChanged();
+        }
+
+        function duplicateWorkHour(id) {
+            saveStateToHistory();
+            const item = state.workHours.find(w => w.id === id);
+            if (item) {
+                const newItem = { ...item, id: Date.now() };
+                state.workHours.push(newItem);
+                renderWorkHours();
+                dataChanged();
+            }
         }
 
         function renderWorkHours() {
             const tbody = document.getElementById('work-hours-tbody');
             tbody.innerHTML = state.workHours.map(w => {
                 const wages = [
-                    parseFloat(document.getElementById('wage1').value) || 0,
-                    parseFloat(document.getElementById('wage2').value) || 0,
-                    parseFloat(document.getElementById('wage3').value) || 0
+                    Math.max(0, parseFloat(document.getElementById('wage1').value) || 0),
+                    Math.max(0, parseFloat(document.getElementById('wage2').value) || 0),
+                    Math.max(0, parseFloat(document.getElementById('wage3').value) || 0)
                 ];
                 const amount = (w.hours || 0) * (wages[w.wage - 1] || 0);
                 return `
                     <tr>
-                        <td><input type="text" value="${w.position}" onchange="state.workHours.find(x => x.id === ${w.id}).position = this.value; calculateAll()" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
-                        <td><input type="number" value="${w.hours}" step="0.5" onchange="state.workHours.find(x => x.id === ${w.id}).hours = parseFloat(this.value); calculateAll()" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
-                        <td><select onchange="state.workHours.find(x => x.id === ${w.id}).wage = parseInt(this.value); calculateAll()" style="width: 100%; padding: 4px; border: 1px solid #ddd;">
+                        <td><input type="text" value="${escapeHtml(w.position)}" oninput="state.workHours.find(x => x.id === ${w.id}).position = this.value; calculateAll(); dataChanged()" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${w.hours}" step="0.5" min="0" oninput="state.workHours.find(x => x.id === ${w.id}).hours = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged()" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><select onchange="state.workHours.find(x => x.id === ${w.id}).wage = parseInt(this.value); calculateAll(); dataChanged()" style="width: 100%; padding: 4px; border: 1px solid #ddd;">
                             <option value="1" ${w.wage === 1 ? 'selected' : ''}>Lohn 1</option>
                             <option value="2" ${w.wage === 2 ? 'selected' : ''}>Lohn 2</option>
                             <option value="3" ${w.wage === 3 ? 'selected' : ''}>Lohn 3</option>
                         </select></td>
                         <td>${amount.toFixed(2)}</td>
-                        <td class="no-print"><button class="delete-btn" onclick="removeWorkHour(${w.id})">✕</button></td>
+                        <td class="no-print">
+                            <button class="duplicate-btn" onclick="duplicateWorkHour(${w.id})" title="Duplizieren">⎘</button>
+                            <button class="delete-btn" onclick="removeWorkHour(${w.id})">✕</button>
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -1047,28 +1516,46 @@
 
         // ===== VEHICLE FUNCTIONS =====
         function addVehicleTrip() {
+            saveStateToHistory();
             const id = Date.now();
             state.vehicles.push({ id, distance: 0, trips: 1 });
             renderVehicles();
+            dataChanged();
         }
 
         function removeVehicleTrip(id) {
+            saveStateToHistory();
             state.vehicles = state.vehicles.filter(v => v.id !== id);
             renderVehicles();
             calculateAll();
+            dataChanged();
+        }
+
+        function duplicateVehicleTrip(id) {
+            saveStateToHistory();
+            const item = state.vehicles.find(v => v.id === id);
+            if (item) {
+                const newItem = { ...item, id: Date.now() };
+                state.vehicles.push(newItem);
+                renderVehicles();
+                dataChanged();
+            }
         }
 
         function renderVehicles() {
             const tbody = document.getElementById('vehicle-tbody');
-            const cost = parseFloat(document.getElementById('vehicle_cost').value) || 0.4;
+            const cost = Math.max(0, parseFloat(document.getElementById('vehicle_cost').value) || 0.4);
             tbody.innerHTML = state.vehicles.map(v => {
                 const sum = (v.distance || 0) * (v.trips || 1) * cost;
                 return `
                     <tr>
-                        <td><input type="number" value="${v.distance}" step="1" onchange="state.vehicles.find(x => x.id === ${v.id}).distance = parseFloat(this.value); calculateAll()" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
-                        <td><input type="number" value="${v.trips}" step="1" onchange="state.vehicles.find(x => x.id === ${v.id}).trips = parseFloat(this.value); calculateAll()" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${v.distance}" step="1" min="0" oninput="state.vehicles.find(x => x.id === ${v.id}).distance = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged()" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${v.trips}" step="1" min="1" oninput="state.vehicles.find(x => x.id === ${v.id}).trips = Math.max(1, parseInt(this.value) || 1); calculateAll(); dataChanged()" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
                         <td>${sum.toFixed(2)}</td>
-                        <td class="no-print"><button class="delete-btn" onclick="removeVehicleTrip(${v.id})">✕</button></td>
+                        <td class="no-print">
+                            <button class="duplicate-btn" onclick="duplicateVehicleTrip(${v.id})" title="Duplizieren">⎘</button>
+                            <button class="delete-btn" onclick="removeVehicleTrip(${v.id})">✕</button>
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -1076,6 +1563,7 @@
 
         // ===== WOOD PART FUNCTIONS =====
         function addWoodPart() {
+            saveStateToHistory();
             const id = Date.now();
             state.woodParts.push({
                 id,
@@ -1091,35 +1579,52 @@
                 B2: -1
             });
             renderWoodParts();
+            dataChanged();
         }
 
         function removeWoodPart(id) {
+            saveStateToHistory();
             state.woodParts = state.woodParts.filter(w => w.id !== id);
             renderWoodParts();
             calculateAll();
+            dataChanged();
+        }
+
+        function duplicateWoodPart(id) {
+            saveStateToHistory();
+            const part = state.woodParts.find(w => w.id === id);
+            if (part) {
+                const newPart = { ...part, id: Date.now() };
+                state.woodParts.push(newPart);
+                renderWoodParts();
+                dataChanged();
+            }
         }
 
         function renderWoodParts() {
             const tbody = document.getElementById('wood-tbody');
             tbody.innerHTML = state.woodParts.map((w, idx) => {
                 const materialOptions = state.materials.length > 0
-                    ? state.materials.map((m, i) => `<option value="${i}" ${w.material === i ? 'selected' : ''}>${m.name || `Material ${i+1}`}</option>`).join('')
+                    ? state.materials.map((m, i) => `<option value="${i}" ${w.material === i ? 'selected' : ''}>${escapeHtml(m.name) || `Material ${i+1}`}</option>`).join('')
                     : '<option value="0">Keine Materialien definiert</option>';
 
                 return `
                     <tr>
                         <td style="font-size: 12px; text-align: center; padding: 6px;">${idx + 1}</td>
-                        <td><input type="text" value="${w.name}" onchange="state.woodParts.find(x => x.id === ${w.id}).name = this.value;" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
-                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).material = parseInt(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;">${materialOptions}</select></td>
-                        <td><input type="number" value="${w.qty}" onchange="state.woodParts.find(x => x.id === ${w.id}).qty = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
-                        <td><input type="number" value="${w.length}" step="1" onchange="state.woodParts.find(x => x.id === ${w.id}).length = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
-                        <td><input type="number" value="${w.width}" step="1" onchange="state.woodParts.find(x => x.id === ${w.id}).width = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
-                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).L1 = parseInt(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"><option value="-1">Keine</option>${state.edges.map((e, i) => `<option value="${i}" ${w.L1 === i ? 'selected' : ''}>${e.name}</option>`).join('')}</select></td>
-                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).L2 = parseInt(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"><option value="-1">Keine</option>${state.edges.map((e, i) => `<option value="${i}" ${w.L2 === i ? 'selected' : ''}>${e.name}</option>`).join('')}</select></td>
-                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).B1 = parseInt(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"><option value="-1">Keine</option>${state.edges.map((e, i) => `<option value="${i}" ${w.B1 === i ? 'selected' : ''}>${e.name}</option>`).join('')}</select></td>
-                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).B2 = parseInt(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"><option value="-1">Keine</option>${state.edges.map((e, i) => `<option value="${i}" ${w.B2 === i ? 'selected' : ''}>${e.name}</option>`).join('')}</select></td>
-                        <td><input type="text" value="${w.remark}" onchange="state.woodParts.find(x => x.id === ${w.id}).remark = this.value;" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
-                        <td class="no-print"><button class="delete-btn" onclick="removeWoodPart(${w.id})">✕</button></td>
+                        <td><input type="text" value="${escapeHtml(w.name)}" oninput="state.woodParts.find(x => x.id === ${w.id}).name = this.value; dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
+                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).material = parseInt(this.value); calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;">${materialOptions}</select></td>
+                        <td><input type="number" value="${w.qty}" min="1" oninput="state.woodParts.find(x => x.id === ${w.id}).qty = Math.max(1, parseFloat(this.value) || 1); calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
+                        <td><input type="number" value="${w.length}" step="1" min="0" oninput="state.woodParts.find(x => x.id === ${w.id}).length = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
+                        <td><input type="number" value="${w.width}" step="1" min="0" oninput="state.woodParts.find(x => x.id === ${w.id}).width = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
+                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).L1 = parseInt(this.value); calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"><option value="-1">Keine</option>${state.edges.map((e, i) => `<option value="${i}" ${w.L1 === i ? 'selected' : ''}>${escapeHtml(e.name)}</option>`).join('')}</select></td>
+                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).L2 = parseInt(this.value); calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"><option value="-1">Keine</option>${state.edges.map((e, i) => `<option value="${i}" ${w.L2 === i ? 'selected' : ''}>${escapeHtml(e.name)}</option>`).join('')}</select></td>
+                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).B1 = parseInt(this.value); calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"><option value="-1">Keine</option>${state.edges.map((e, i) => `<option value="${i}" ${w.B1 === i ? 'selected' : ''}>${escapeHtml(e.name)}</option>`).join('')}</select></td>
+                        <td><select onchange="state.woodParts.find(x => x.id === ${w.id}).B2 = parseInt(this.value); calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"><option value="-1">Keine</option>${state.edges.map((e, i) => `<option value="${i}" ${w.B2 === i ? 'selected' : ''}>${escapeHtml(e.name)}</option>`).join('')}</select></td>
+                        <td><input type="text" value="${escapeHtml(w.remark)}" oninput="state.woodParts.find(x => x.id === ${w.id}).remark = this.value; dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd; font-size: 12px;"></td>
+                        <td class="no-print">
+                            <button class="duplicate-btn" onclick="duplicateWoodPart(${w.id})" title="Duplizieren">⎘</button>
+                            <button class="delete-btn" onclick="removeWoodPart(${w.id})">✕</button>
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -1127,15 +1632,30 @@
 
         // ===== HARDWARE FUNCTIONS =====
         function addHardware() {
+            saveStateToHistory();
             const id = Date.now();
             state.hardware.push({ id, description: '', quantity: 0, unit: 'Stk.', pricePerUnit: 0 });
             renderHardware();
+            dataChanged();
         }
 
         function removeHardware(id) {
+            saveStateToHistory();
             state.hardware = state.hardware.filter(h => h.id !== id);
             renderHardware();
             calculateAll();
+            dataChanged();
+        }
+
+        function duplicateHardware(id) {
+            saveStateToHistory();
+            const item = state.hardware.find(h => h.id === id);
+            if (item) {
+                const newItem = { ...item, id: Date.now() };
+                state.hardware.push(newItem);
+                renderHardware();
+                dataChanged();
+            }
         }
 
         function renderHardware() {
@@ -1144,12 +1664,15 @@
                 const sum = (h.quantity || 0) * (h.pricePerUnit || 0);
                 return `
                     <tr>
-                        <td><input type="text" value="${h.description}" onchange="state.hardware.find(x => x.id === ${h.id}).description = this.value; calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
-                        <td><input type="number" value="${h.quantity}" step="0.1" onchange="state.hardware.find(x => x.id === ${h.id}).quantity = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
-                        <td><input type="text" value="${h.unit}" onchange="state.hardware.find(x => x.id === ${h.id}).unit = this.value;" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
-                        <td><input type="number" value="${h.pricePerUnit}" step="0.01" onchange="state.hardware.find(x => x.id === ${h.id}).pricePerUnit = parseFloat(this.value); calculateAll();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="text" value="${escapeHtml(h.description)}" oninput="state.hardware.find(x => x.id === ${h.id}).description = this.value; calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${h.quantity}" step="0.1" min="0" oninput="state.hardware.find(x => x.id === ${h.id}).quantity = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="text" value="${escapeHtml(h.unit)}" oninput="state.hardware.find(x => x.id === ${h.id}).unit = this.value; dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
+                        <td><input type="number" value="${h.pricePerUnit}" step="0.01" min="0" oninput="state.hardware.find(x => x.id === ${h.id}).pricePerUnit = Math.max(0, parseFloat(this.value) || 0); calculateAll(); dataChanged();" style="width: 100%; padding: 4px; border: 1px solid #ddd;"></td>
                         <td>${sum.toFixed(2)}</td>
-                        <td class="no-print"><button class="delete-btn" onclick="removeHardware(${h.id})">✕</button></td>
+                        <td class="no-print">
+                            <button class="duplicate-btn" onclick="duplicateHardware(${h.id})" title="Duplizieren">⎘</button>
+                            <button class="delete-btn" onclick="removeHardware(${h.id})">✕</button>
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -1208,8 +1731,8 @@
                 const cost = (item.total * (item.edge.price || 0)).toFixed(2);
                 return `
                     <tr>
-                        <td>${item.label}</td>
-                        <td>${item.edge.name}</td>
+                        <td>${escapeHtml(item.label)}</td>
+                        <td>${escapeHtml(item.edge.name)}</td>
                         <td>${item.edge.thickness} mm</td>
                         <td>${item.total.toFixed(3)}</td>
                         <td>${(item.edge.price || 0).toFixed(2)}</td>
@@ -1264,21 +1787,21 @@
             });
 
             const wages = [
-                parseFloat(document.getElementById('wage1').value) || 0,
-                parseFloat(document.getElementById('wage2').value) || 0,
-                parseFloat(document.getElementById('wage3').value) || 0
+                Math.max(0, parseFloat(document.getElementById('wage1').value) || 0),
+                Math.max(0, parseFloat(document.getElementById('wage2').value) || 0),
+                Math.max(0, parseFloat(document.getElementById('wage3').value) || 0)
             ];
             const laborCost = state.workHours.reduce((sum, w) => sum + ((w.hours || 0) * (wages[w.wage - 1] || 0)), 0);
-            const vehicleCost = state.vehicles.reduce((sum, v) => sum + ((v.distance || 0) * (v.trips || 1) * (parseFloat(document.getElementById('vehicle_cost').value) || 0.4)), 0);
+            const vehicleCost = state.vehicles.reduce((sum, v) => sum + ((v.distance || 0) * (v.trips || 1) * (Math.max(0, parseFloat(document.getElementById('vehicle_cost').value) || 0.4))), 0);
             const hardwareCost = state.hardware.reduce((sum, h) => sum + ((h.quantity || 0) * (h.pricePerUnit || 0)), 0);
             const subcontractCost = state.subcontracts.reduce((sum, s) => sum + ((s.quantity || 0) * (s.pricePerUnit || 0)), 0);
             const coatingCost = state.coatings.reduce((sum, c) => sum + ((c.liters || 0) * (c.pricePerLiter || 0)), 0);
 
             const costs = materialCost + edgeCost + laborCost + vehicleCost + hardwareCost + subcontractCost + coatingCost;
-            const margin = parseFloat(document.getElementById('margin').value) || 0;
+            const margin = Math.max(0, parseFloat(document.getElementById('margin').value) || 0);
             const marginAmount = costs * (margin / 100);
             const total = costs + marginAmount;
-            const discount = parseFloat(document.getElementById('discount').value) || 0;
+            const discount = Math.max(0, Math.min(100, parseFloat(document.getElementById('discount').value) || 0));
             const discountAmount = total * (discount / 100);
             const netTotal = total - discountAmount;
             const tax = netTotal * 0.19;
@@ -1300,8 +1823,21 @@
             calculateEdgeSummary();
         }
 
+        function renderAll() {
+            renderMaterials();
+            renderEdges();
+            renderWorkHours();
+            renderVehicles();
+            renderWoodParts();
+            renderHardware();
+            renderSubcontracts();
+            renderCoatings();
+        }
+
         function resetForm() {
-            if (confirm('Formular wirklich zurücksetzen?')) {
+            if (confirm('Formular wirklich zurücksetzen? Alle Daten gehen verloren!')) {
+                saveStateToHistory();
+
                 state.materials = [];
                 state.edges = [];
                 state.workHours = [];
@@ -1310,6 +1846,7 @@
                 state.coatings = [];
                 state.woodParts = [];
                 state.hardware = [];
+
                 document.getElementById('customer').value = '';
                 document.getElementById('object').value = '';
                 document.getElementById('processed_by').value = '';
@@ -1322,33 +1859,28 @@
                 state.edges.push({ id: Date.now() + 2, name: 'weiß 1', thickness: 1, price: 2.3 });
                 state.edges.push({ id: Date.now() + 3, name: 'weiß 2', thickness: 2, price: 3.5 });
 
-                renderMaterials();
-                renderEdges();
-                renderWorkHours();
-                renderVehicles();
-                renderWoodParts();
-                renderHardware();
-                renderSubcontracts();
-                renderCoatings();
+                renderAll();
                 calculateAll();
+                dataChanged();
             }
         }
 
-        // Initial render mit Standardwerten
-        state.materials.push({ id: Date.now(), name: '19 weiß', thickness: 19, markup: 20, price: 6.50 });
-        state.materials.push({ id: Date.now() + 1, name: '8 weiß', thickness: 8, markup: 20, price: 4.50 });
-        state.edges.push({ id: Date.now() + 2, name: 'weiß 1', thickness: 1, price: 2.3 });
-        state.edges.push({ id: Date.now() + 3, name: 'weiß 2', thickness: 2, price: 3.5 });
+        // ===== INITIALIZATION =====
+        window.addEventListener('load', function() {
+            // Try to load from localStorage first
+            const loaded = loadFromLocalStorage();
 
-        renderMaterials();
-        renderEdges();
-        renderWorkHours();
-        renderVehicles();
-        renderWoodParts();
-        renderHardware();
-        renderSubcontracts();
-        renderCoatings();
-        calculateAll();
+            // If nothing was loaded, initialize with default values
+            if (!loaded) {
+                state.materials.push({ id: Date.now(), name: '19 weiß', thickness: 19, markup: 20, price: 6.50 });
+                state.materials.push({ id: Date.now() + 1, name: '8 weiß', thickness: 8, markup: 20, price: 4.50 });
+                state.edges.push({ id: Date.now() + 2, name: 'weiß 1', thickness: 1, price: 2.3 });
+                state.edges.push({ id: Date.now() + 3, name: 'weiß 2', thickness: 2, price: 3.5 });
+            }
+
+            renderAll();
+            calculateAll();
+        });
     </script>
 </body>
 </html>
