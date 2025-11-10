@@ -432,8 +432,9 @@
                 word-wrap: break-word;
                 overflow: hidden;
             }
-            /* Kantenberechnung beim Druck ausblenden */
-            #edge-summary-table-section {
+            /* Kantenberechnung und Plattenberechnung beim Druck ausblenden */
+            #edge-summary-table-section,
+            #panel-calculation-section {
                 display: none !important;
             }
         }
@@ -832,11 +833,10 @@
             </div>
 
             <div id="edge-summary-table-section" class="section section-full">
-                <div class="section-title">Kantenberechnung Übersicht (nach Kantenbezeichnung)</div>
+                <div class="section-title">Kantenberechnung für Bestellung</div>
                 <table id="edge-summary-table">
                     <thead>
                         <tr>
-                            <th>Kantenbezeichnung</th>
                             <th>Kantenart</th>
                             <th>Stärke</th>
                             <th>Gesamtlänge (m)</th>
@@ -845,6 +845,22 @@
                         </tr>
                     </thead>
                     <tbody id="edge-summary-tbody"></tbody>
+                </table>
+            </div>
+
+            <div id="panel-calculation-section" class="section section-full">
+                <div class="section-title">Plattenberechnung für Bestellung</div>
+                <table id="panel-calculation-table">
+                    <thead>
+                        <tr>
+                            <th>Material</th>
+                            <th>Gesamtfläche (m²)</th>
+                            <th>Plattenformat (mm)</th>
+                            <th>Fläche pro Platte (m²)</th>
+                            <th>Benötigte Platten</th>
+                        </tr>
+                    </thead>
+                    <tbody id="panel-calculation-tbody"></tbody>
                 </table>
             </div>
 
@@ -1123,6 +1139,7 @@
             event.target.classList.add('active');
             if (tabName === 'holzliste') {
                 calculateEdgeSummary();
+                calculatePanelRequirements();
             }
         }
 
@@ -1787,43 +1804,48 @@
             const edgeSummary = {};
             const EDGE_SURCHARGE_MM = 80;
 
+            // Vereinfachte Kantenberechnung: nur nach Kantentyp gruppieren
             state.woodParts.forEach(part => {
+                // L1 Kante
                 if (part.L1 >= 0 && part.L1 < state.edges.length) {
                     const edge = state.edges[part.L1];
-                    const key = `L1_${part.L1}`;
+                    const key = `edge_${part.L1}`;
                     const meters = ((part.length + EDGE_SURCHARGE_MM) * (part.qty || 1)) / 1000;
                     if (!edgeSummary[key]) {
-                        edgeSummary[key] = { label: 'L1 (oben/vorne)', edge, total: 0 };
+                        edgeSummary[key] = { edge, total: 0 };
                     }
                     edgeSummary[key].total += meters;
                 }
 
+                // L2 Kante
                 if (part.L2 >= 0 && part.L2 < state.edges.length) {
                     const edge = state.edges[part.L2];
-                    const key = `L2_${part.L2}`;
+                    const key = `edge_${part.L2}`;
                     const meters = ((part.length + EDGE_SURCHARGE_MM) * (part.qty || 1)) / 1000;
                     if (!edgeSummary[key]) {
-                        edgeSummary[key] = { label: 'L2 (unten/hinten)', edge, total: 0 };
+                        edgeSummary[key] = { edge, total: 0 };
                     }
                     edgeSummary[key].total += meters;
                 }
 
+                // B1 Kante
                 if (part.B1 >= 0 && part.B1 < state.edges.length) {
                     const edge = state.edges[part.B1];
-                    const key = `B1_${part.B1}`;
+                    const key = `edge_${part.B1}`;
                     const meters = ((part.width + EDGE_SURCHARGE_MM) * (part.qty || 1)) / 1000;
                     if (!edgeSummary[key]) {
-                        edgeSummary[key] = { label: 'B1 (links)', edge, total: 0 };
+                        edgeSummary[key] = { edge, total: 0 };
                     }
                     edgeSummary[key].total += meters;
                 }
 
+                // B2 Kante
                 if (part.B2 >= 0 && part.B2 < state.edges.length) {
                     const edge = state.edges[part.B2];
-                    const key = `B2_${part.B2}`;
+                    const key = `edge_${part.B2}`;
                     const meters = ((part.width + EDGE_SURCHARGE_MM) * (part.qty || 1)) / 1000;
                     if (!edgeSummary[key]) {
-                        edgeSummary[key] = { label: 'B2 (rechts)', edge, total: 0 };
+                        edgeSummary[key] = { edge, total: 0 };
                     }
                     edgeSummary[key].total += meters;
                 }
@@ -1835,12 +1857,62 @@
                 const cost = (item.total * (item.edge.price || 0)).toFixed(2);
                 return `
                     <tr>
-                        <td>${escapeHtml(item.label)}</td>
                         <td>${escapeHtml(item.edge.name)}</td>
                         <td>${item.edge.thickness} mm</td>
                         <td>${item.total.toFixed(3)}</td>
                         <td>${(item.edge.price || 0).toFixed(2)}</td>
                         <td>${cost}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ===== PANEL CALCULATION =====
+        function calculatePanelRequirements() {
+            const panelSummary = {};
+            const DEFAULT_PANEL_LENGTH = 2800; // mm
+            const DEFAULT_PANEL_WIDTH = 2070; // mm
+            const DEFAULT_PANEL_AREA = (DEFAULT_PANEL_LENGTH * DEFAULT_PANEL_WIDTH) / 1000000; // m²
+
+            // Gruppiere nach Material und berechne Gesamtfläche
+            state.woodParts.forEach(part => {
+                if (part.material >= 0 && part.material < state.materials.length) {
+                    const material = state.materials[part.material];
+                    const key = `material_${part.material}`;
+
+                    // Berechne Fläche dieses Teils
+                    const partArea = ((part.length * part.width) / 1000000) * (part.qty || 1);
+
+                    if (!panelSummary[key]) {
+                        panelSummary[key] = {
+                            material: material,
+                            totalArea: 0,
+                            panelLength: DEFAULT_PANEL_LENGTH,
+                            panelWidth: DEFAULT_PANEL_WIDTH,
+                            panelArea: DEFAULT_PANEL_AREA
+                        };
+                    }
+
+                    panelSummary[key].totalArea += partArea;
+                }
+            });
+
+            const tbody = document.getElementById('panel-calculation-tbody');
+            tbody.innerHTML = Object.keys(panelSummary).map(key => {
+                const item = panelSummary[key];
+
+                // Berechne benötigte Platten (mit Verschnitt-Aufschlag)
+                const wasteMultiplier = 1 + ((item.material.markup || 0) / 100);
+                const totalAreaWithWaste = item.totalArea * wasteMultiplier;
+                const panelsNeeded = Math.ceil(totalAreaWithWaste / item.panelArea);
+
+                return `
+                    <tr>
+                        <td>${escapeHtml(item.material.name)}</td>
+                        <td>${item.totalArea.toFixed(3)} (+ ${item.material.markup || 0}% Verschnitt = ${totalAreaWithWaste.toFixed(3)})</td>
+                        <td>${item.panelLength} × ${item.panelWidth}</td>
+                        <td>${item.panelArea.toFixed(3)}</td>
+                        <td><strong>${panelsNeeded}</strong></td>
                     </tr>
                 `;
             }).join('');
@@ -1925,6 +1997,7 @@
             document.getElementById('summary-gross').textContent = gross.toFixed(2);
 
             calculateEdgeSummary();
+            calculatePanelRequirements();
         }
 
         function renderAll() {
