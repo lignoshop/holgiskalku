@@ -372,14 +372,43 @@
             .actions, .tab-buttons, .btn-secondary, .delete-btn, .duplicate-btn, .save-indicator, .undo-btn {
                 display: none !important;
             }
+            /* Minimalistisches Design ohne Boxen/Rahmen */
             .section {
                 break-inside: avoid;
+                background: none !important;
+                border: none !important;
+                border-radius: 0 !important;
+                padding: 10px 0 !important;
+                margin-bottom: 15px !important;
             }
+            .section-title {
+                border-bottom: 2px solid #333;
+                padding-bottom: 5px;
+                margin-bottom: 10px;
+            }
+            /* Minimale Tabellen-Gestaltung */
             table {
                 font-size: 9px;
+                border: none !important;
             }
-            th, td {
+            th {
+                background: none !important;
+                color: #000 !important;
+                border-left: none !important;
+                border-right: none !important;
+                border-top: 1px solid #333 !important;
+                border-bottom: 2px solid #333 !important;
+                font-weight: bold;
+            }
+            td {
+                border-left: none !important;
+                border-right: none !important;
+                border-top: none !important;
+                border-bottom: 1px solid #ddd !important;
                 padding: 3px 2px;
+            }
+            tr:hover {
+                background: none !important;
             }
             /* Holzliste speziell für Druck optimieren */
             #wood-table {
